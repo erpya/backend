@@ -9,8 +9,8 @@ plugins {
 group 'com.nikhilm'
 sourceCompatibility = 1.11
 def grpcVersion = '1.53.0'
-def baseVersion = '3.9.4'
-def baseGroupId = 'io.github.adempiere'
+def baseVersion = 'erpya-3.9.4-1.0.0'
+def baseGroupId = 'com.erpya'
 def customBaseVersion = "adempiere-3.9.4"
 def javaMainClass = "org.spin.server.AllInOneServices"
 repositories {
@@ -75,7 +75,9 @@ dependencies {
     compileOnly 'org.apache.tomcat:annotations-api:6.0.53'
 	// ADempiere External Libraries
 	implementation 'com.github.jjYBdx4IL:ecs:1.4.2.1'
-		// ADempiere External Libraries
+	//	Foreign ADempiere Library
+	implementation "io.github.adempiere:adempiere-pos-improvements:1.0.0"
+	// ADempiere External Libraries
 	implementation 'com.github.jjYBdx4IL:ecs:1.4.2.1'
 	implementation "org.erpya.adempiere.tools:exchange-operation-system:${customBaseVersion}-1.2.8"
 	implementation "org.erpya.adempiere.tools:packout-exporter:${customBaseVersion}-1.0.6"
@@ -99,7 +101,7 @@ dependencies {
 	implementation "org.erpya.adempiere.tools:performance-analysis:${customBaseVersion}-1.1.4"
 	implementation "org.erpya.adempiere.tools:queue-manager:${customBaseVersion}-1.0.7"
 	implementation "org.erpya.adempiere.tools:notification-queue:${customBaseVersion}-1.1.6"
-	implementation "org.erpya.adempiere.pos:point-of-sales-improvements:${customBaseVersion}-1.5.2"
+
 	implementation "org.erpya.adempiere.tools:material-management-improvements:${customBaseVersion}-1.1.6"
 	implementation "org.erpya.adempiere.tools:warehouse-management-system-improvements:${customBaseVersion}-1.1.6"
 	implementation "org.erpya.adempiere.tools:print-queue:${customBaseVersion}-1.1.4"
