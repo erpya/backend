@@ -22,12 +22,12 @@ RUN gradle build && \
 	mv docker/env.yaml /opt/apps/adempiere-grpc-server && \
 	mv docker/start.sh /opt/apps/adempiere-grpc-server
 
-FROM eclipse-temurin:11-jdk-alpine
+FROM eclipse-temurin:11-jdk-focal
 
 # Init ENV with default values
 ENV \
 	SERVER_PORT="50059" \
-	SERVICES_ENABLED="business; business_partner; core; dashboarding; dictionary; enrollment; express_shipment; file_management; general_ledger; in_out; invoice; issue_management; log; material_management; order; payment; payment_print_export; payroll_action_notice; pos; product; security; store; time_control; time_record; ui; user_customization; workflow;" \
+	SERVICES_ENABLED="business; business_partner; core; dashboarding; dictionary; enrollment; express_receipt; express_shipment; file_management; general_ledger; in_out; invoice; issue_management; log; material_management; order; payment; payment_print_export; payroll_action_notice; pos; product; security; store; time_control; time_record; ui; user_customization; workflow;" \
 	SERVER_LOG_LEVEL="WARNING" \
 	SECRET_KEY="A42CF908019918B1D9D9E04E596658345D162D4C0127A4C8365E8BDF6B015CC7" \
 	DB_HOST="localhost" \
@@ -42,17 +42,13 @@ ENV \
 WORKDIR /opt/apps/server
 
 # Add operative system dependencies
-RUN	rm -rf /var/cache/apk/* && \
-	rm -rf /tmp/* && \
-	apk update && \
-	apk add --no-cache \
+RUN	apt-get update && apt-get install -y tzdata \
 		bash \
 	 	fontconfig \
 		ttf-dejavu && \
+		rm -rf /var/lib/apt/lists/* \
 		echo "Set Timezone..." && \
-	 	echo $TZ > /etc/timezone && \
-                apk add --no-cache \
-		tzdata
+	 	echo $TZ > /etc/timezone
 
 
 COPY --from=builder /opt/apps/adempiere-grpc-server/ /opt/apps/server/
