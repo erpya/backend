@@ -91,6 +91,8 @@ dependencies {
 	//*********************************************************************//
 	//	Foreign ADempiere Library
 	implementation "${baseGroupId}:adempiere-pos-improvements:1.0.0"
+	// Dashboard Improvements
+	implementation 'io.github.adempiere:adempiere-dashboard-improvements:1.0.3'
 	//	
 	implementation "org.erpya.adempiere.tools:exchange-operation-system:${customBaseVersion}-1.2.9"
 	implementation "org.erpya.adempiere.tools:packout-exporter:${customBaseVersion}-1.1.0"

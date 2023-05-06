@@ -18,17 +18,36 @@ package org.spin.dashboarding;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 import org.adempiere.apps.graph.GraphColumn;
+import org.adempiere.core.domains.models.I_AD_Column;
+import org.adempiere.core.domains.models.I_AD_Field;
+import org.adempiere.core.domains.models.I_AD_Process_Para;
+import org.adempiere.core.domains.models.X_AD_TreeNodeMM;
+import org.adempiere.model.MBrowse;
+import org.compiere.model.MChart;
 import org.compiere.model.MColorSchema;
-import org.compiere.model.MGoal;
+import org.compiere.model.MForm;
+import org.compiere.model.MMenu;
+import org.compiere.model.MProcess;
+import org.compiere.model.MWindow;
+import org.compiere.model.PO;
+import org.compiere.model.Query;
 import org.compiere.print.MPrintColor;
 import org.compiere.util.CLogger;
 import org.compiere.util.Env;
+import org.compiere.util.Util;
 import org.spin.backend.grpc.dashboarding.ChartData;
 import org.spin.backend.grpc.dashboarding.ColorSchema;
-import org.spin.backend.grpc.dashboarding.WindowChart;
+import org.spin.backend.grpc.dashboarding.Favorite;
+import org.spin.backend.grpc.dashboarding.Filter;
+import org.spin.backend.grpc.dashboarding.WindowDashboard;
+import org.spin.backend.grpc.dashboarding.WindowDashboardParameter;
 import org.spin.base.util.ValueUtil;
 
 /**
@@ -62,6 +81,178 @@ public class DashboardingConvertUtil {
 		return ValueUtil.validateNull(
 			String.format("#%06X", (0xFFFFFF & color))
 		);
+	}
+
+	/**
+	 * Convert Filter Values from gRPC to ADempiere object values
+	 * @param values
+	 * @return
+	 */
+	public static Map<String, Object> convertFilterValuesToObjects(List<Filter> filtersList) {
+		Map<String, Object> convertedValues = new HashMap<>();
+		if (filtersList == null || filtersList.size() <= 0) {
+			return convertedValues;
+		}
+		for (Filter filter : filtersList) {
+			Object value = null;
+			// to IN or NOT IN clause
+			if (filter.getValuesList() != null && filter.getValuesList().size() > 0) {
+				List<Object> values = new ArrayList<Object>();
+				filter.getValuesList().forEach(valueBuilder -> {
+					Object currentValue = ValueUtil.getObjectFromValue(
+						valueBuilder
+					);
+					values.add(currentValue);
+				});
+				value = values;
+			}
+			else {
+				value = ValueUtil.getObjectFromValue(filter.getValue());
+				// to BETWEEN clause
+				if (filter.hasValueTo()) {
+					Object currentValue = value;
+					List<Object> values = new ArrayList<Object>();
+					values.add(currentValue);
+					values.add(
+						ValueUtil.getObjectFromValue(
+							filter.getValueTo()
+						)
+					);
+					value = values;
+				}
+			}
+			convertedValues.put(
+				filter.getColumnName(),
+				value
+			);
+		}
+		//
+		return convertedValues;
+	}
+
+	@SuppressWarnings("unchecked")
+	public static void addCollectionParameters(Object objectColelction, List<Object> parameters) {
+		if (objectColelction instanceof Collection) {
+			try {
+				Collection<Object> collection = (Collection<Object>) objectColelction;
+				// for-each loop
+				for (Object rangeValue : collection) {
+					parameters.add(rangeValue);
+				}
+			}
+			catch (Exception e) {
+			}
+		}
+	}
+
+
+	public static Favorite.Builder convertFavorite(X_AD_TreeNodeMM treeNodeMenu) {
+		Favorite.Builder builder = Favorite.newBuilder();
+		if (treeNodeMenu == null || treeNodeMenu.getNode_ID() <= 0) {
+			return builder;
+		}
+		Properties context = Env.getCtx();
+
+		String menuName = "";
+		String menuDescription = "";
+		MMenu menu = MMenu.getFromId(context, treeNodeMenu.getNode_ID());
+		builder.setMenuUuid(ValueUtil.validateNull(menu.getUUID()));
+		String action = MMenu.ACTION_Window;
+		if (!menu.isCentrallyMaintained()) {
+			menuName = menu.getName();
+			menuDescription = menu.getDescription();
+			if (!Env.isBaseLanguage(context, "")) {
+				String translation = menu.get_Translation("Name");
+				if (!Util.isEmpty(translation, true)) {
+					menuName = translation;
+				}
+				translation = menu.get_Translation("Description");
+				if (!Util.isEmpty(translation, true)) {
+					menuDescription = translation;
+				}
+			}
+		}
+		//	Supported actions
+		if (!Util.isEmpty(menu.getAction(), true)) {
+			action = menu.getAction();
+			String referenceUuid = null;
+			if (menu.getAction().equals(MMenu.ACTION_Form) && menu.getAD_Form_ID() > 0) {
+				MForm form = new MForm(context, menu.getAD_Form_ID(), null);
+				referenceUuid = form.getUUID();
+				if (menu.isCentrallyMaintained()) {
+					menuName = form.getName();
+					menuDescription = form.getDescription();
+					if (!Env.isBaseLanguage(context, "")) {
+						String translation = form.get_Translation("Name");
+						if (!Util.isEmpty(translation, true)) {
+							menuName = translation;
+						}
+						translation = form.get_Translation("Description");
+						if (!Util.isEmpty(translation, true)) {
+							menuDescription = translation;
+						}
+					}
+				}
+			} else if (menu.getAction().equals(MMenu.ACTION_Window) && menu.getAD_Window_ID() > 0) {
+				MWindow window = new MWindow(context, menu.getAD_Window_ID(), null);
+				referenceUuid = window.getUUID();
+				if (menu.isCentrallyMaintained()) {
+					menuName = window.getName();
+					menuDescription = window.getDescription();
+					if (!Env.isBaseLanguage(context, "")) {
+						String translation = window.get_Translation("Name");
+						if (!Util.isEmpty(translation, true)) {
+							menuName = translation;
+						}
+						translation = window.get_Translation("Description");
+						if (!Util.isEmpty(translation, true)) {
+							menuDescription = translation;
+						}
+					}
+				}
+			} else if ((menu.getAction().equals(MMenu.ACTION_Process)
+				|| menu.getAction().equals(MMenu.ACTION_Report)) && menu.getAD_Process_ID() > 0) {
+				MProcess process = MProcess.get(context, menu.getAD_Process_ID());
+				referenceUuid = process.getUUID();
+				if (menu.isCentrallyMaintained()) {
+					menuName = process.getName();
+					menuDescription = process.getDescription();
+					if (!Env.isBaseLanguage(context, "")) {
+						String translation = process.get_Translation("Name");
+						if (!Util.isEmpty(translation, true)) {
+							menuName = translation;
+						}
+						translation = process.get_Translation("Description");
+						if (!Util.isEmpty(translation, true)) {
+							menuDescription = translation;
+						}
+					}
+				}
+			} else if (menu.getAction().equals(MMenu.ACTION_SmartBrowse) && menu.getAD_Browse_ID() > 0) {
+				MBrowse smartBrowser = MBrowse.get(context, menu.getAD_Browse_ID());
+				referenceUuid = smartBrowser.getUUID();
+				if (menu.isCentrallyMaintained()) {
+					menuName = smartBrowser.getName();
+					menuDescription = smartBrowser.getDescription();
+					if (!Env.isBaseLanguage(context, "")) {
+						String translation = smartBrowser.get_Translation("Name");
+						if (!Util.isEmpty(translation, true)) {
+							menuName = translation;
+						}
+						translation = smartBrowser.get_Translation("Description");
+						if (!Util.isEmpty(translation, true)) {
+							menuDescription = translation;
+						}
+					}
+				}
+			}
+			builder.setReferenceUuid(ValueUtil.validateNull(referenceUuid));
+			builder.setAction(ValueUtil.validateNull(action));
+		}
+		//	Set name and description
+		builder.setMenuName(ValueUtil.validateNull(menuName));
+		builder.setMenuDescription(ValueUtil.validateNull(menuDescription));
+		return builder;
 	}
 
 
@@ -194,15 +385,101 @@ public class DashboardingConvertUtil {
 	}
 
 
+	public static WindowDashboardParameter.Builder convertWindowDashboardParameter(PO chartParameter) {
+		WindowDashboardParameter.Builder builder = WindowDashboardParameter.newBuilder();
+		if (chartParameter == null || chartParameter.get_ID() <= 0) {
+			return builder;
+		}
+		builder.setId(chartParameter.get_ID())
+			.setUuid(
+				ValueUtil.validateNull(chartParameter.get_UUID())
+			)
+			.setName(
+				ValueUtil.validateNull(
+					chartParameter.get_ValueAsString(I_AD_Process_Para.COLUMNNAME_Name)
+				)
+			)
+			.setDescription(
+				ValueUtil.validateNull(
+					chartParameter.get_ValueAsString(I_AD_Process_Para.COLUMNNAME_Description)
+				)
+			)
+			.setHelp(
+				ValueUtil.validateNull(
+					chartParameter.get_ValueAsString(I_AD_Process_Para.COLUMNNAME_Help)
+				)
+			)
+			.setSequence(
+				chartParameter.get_ValueAsInt(I_AD_Process_Para.COLUMNNAME_SeqNo)
+			)
+			.setColumnName(
+				ValueUtil.validateNull(
+					chartParameter.get_ValueAsString(I_AD_Process_Para.COLUMNNAME_ColumnName)
+				)
+			)
+			.setColumnSql(
+				ValueUtil.validateNull(
+					chartParameter.get_ValueAsString("ColumnSQL")
+				)
+			)
+			.setElementId(
+				chartParameter.get_ValueAsInt(I_AD_Process_Para.COLUMNNAME_AD_Element_ID)
+			)
+			.setFieldId(
+				chartParameter.get_ValueAsInt(I_AD_Field.COLUMNNAME_AD_Field_ID)
+			)
+			.setIsMandatory(
+				chartParameter.get_ValueAsBoolean(I_AD_Process_Para.COLUMNNAME_IsMandatory)
+			)
+			.setIsRange(
+				chartParameter.get_ValueAsBoolean(I_AD_Process_Para.COLUMNNAME_IsRange)
+			)
+			.setDefaultValue(
+				ValueUtil.validateNull(
+					chartParameter.get_ValueAsString(I_AD_Process_Para.COLUMNNAME_DefaultValue)
+				)
+			)
+			.setDisplayType(
+				chartParameter.get_ValueAsInt(I_AD_Process_Para.COLUMNNAME_AD_Reference_ID)
+			)
+			.setVFormat(
+				ValueUtil.validateNull(
+					chartParameter.get_ValueAsString(I_AD_Process_Para.COLUMNNAME_VFormat)
+				)
+			)
+			.setValueMax(
+				ValueUtil.validateNull(
+					chartParameter.get_ValueAsString(I_AD_Process_Para.COLUMNNAME_ValueMax)
+				)
+			)
+			.setValueMin(
+				ValueUtil.validateNull(
+					chartParameter.get_ValueAsString(I_AD_Process_Para.COLUMNNAME_ValueMin)
+				)
+			)
+			.setDisplayLogic(
+				ValueUtil.validateNull(
+					chartParameter.get_ValueAsString(I_AD_Process_Para.COLUMNNAME_DisplayLogic)
+				)
+			)
+			.setReadOnlyLogic(
+				ValueUtil.validateNull(
+					chartParameter.get_ValueAsString(I_AD_Process_Para.COLUMNNAME_ReadOnlyLogic)
+				)
+			)
+		;
+		return builder;
+	}
 
-	public static WindowChart.Builder convertWindowChart(MGoal chartDefinition) {
-		WindowChart.Builder builder = WindowChart.newBuilder();
-		if (chartDefinition == null || chartDefinition.getPA_Goal_ID() <= 0) {
+
+	public static WindowDashboard.Builder convertWindowDashboard(MChart chartDefinition) {
+		WindowDashboard.Builder builder = WindowDashboard.newBuilder();
+		if (chartDefinition == null || chartDefinition.getAD_Chart_ID() <= 0) {
 			return builder;
 		}
 
-		builder = WindowChart.newBuilder()
-			.setId(chartDefinition.getPA_Goal_ID())
+		builder = WindowDashboard.newBuilder()
+			.setId(chartDefinition.getAD_Chart_ID())
 			.setUuid(
 				ValueUtil.validateNull(chartDefinition.getUUID())
 			)
@@ -212,7 +489,6 @@ public class DashboardingConvertUtil {
 			.setDescription(
 				ValueUtil.validateNull(chartDefinition.getDescription())
 			)
-			.setSequence(chartDefinition.getSeqNo())
 			.setDashboardType("chart")
 			.setChartType(
 				ValueUtil.validateNull(chartDefinition.getChartType())
@@ -222,6 +498,29 @@ public class DashboardingConvertUtil {
 		;
 
 		return builder;
+	}
+
+	public static List<String> getContextColumnsByWindowChart(int windowChartAllocationId) {
+		List<String> contextColumnsList = new ArrayList<String>();
+
+		new Query(
+				Env.getCtx(),
+				"ECA50_WindowChartParameter",
+				"ECA50_WindowChart_ID = ? AND ECA50_IsEnableSelection = 'N'",
+				null
+			)
+			.setParameters(windowChartAllocationId)
+			.setOnlyActiveRecords(true)
+			.<PO>list()
+			.forEach(windowChartParameter -> {
+				String contextColumn = ValueUtil.validateNull(
+					windowChartParameter.get_ValueAsString(I_AD_Column.COLUMNNAME_ColumnName)
+				);
+				contextColumnsList.add(contextColumn);
+			})
+		;
+
+		return contextColumnsList;
 	}
 
 }
