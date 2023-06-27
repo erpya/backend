@@ -48,9 +48,31 @@ import java.util.stream.Collectors;
 
 import javax.script.ScriptEngine;
 
-import org.adempiere.exceptions.AdempiereException;
 import org.adempiere.core.domains.models.I_AD_Browse;
 import org.adempiere.core.domains.models.I_AD_Browse_Field;
+import org.adempiere.core.domains.models.I_AD_ChangeLog;
+import org.adempiere.core.domains.models.I_AD_Client;
+import org.adempiere.core.domains.models.I_AD_Column;
+import org.adempiere.core.domains.models.I_AD_ContextInfo;
+import org.adempiere.core.domains.models.I_AD_Element;
+import org.adempiere.core.domains.models.I_AD_Field;
+import org.adempiere.core.domains.models.I_AD_Org;
+import org.adempiere.core.domains.models.I_AD_Preference;
+import org.adempiere.core.domains.models.I_AD_PrintFormat;
+import org.adempiere.core.domains.models.I_AD_Private_Access;
+import org.adempiere.core.domains.models.I_AD_Process;
+import org.adempiere.core.domains.models.I_AD_Process_Para;
+import org.adempiere.core.domains.models.I_AD_Record_Access;
+import org.adempiere.core.domains.models.I_AD_ReportView;
+import org.adempiere.core.domains.models.I_AD_Role;
+import org.adempiere.core.domains.models.I_AD_Tab;
+import org.adempiere.core.domains.models.I_AD_Table;
+import org.adempiere.core.domains.models.I_AD_User;
+import org.adempiere.core.domains.models.I_AD_Window;
+import org.adempiere.core.domains.models.I_CM_Chat;
+import org.adempiere.core.domains.models.I_C_Element;
+import org.adempiere.core.domains.models.I_R_MailText;
+import org.adempiere.exceptions.AdempiereException;
 import org.adempiere.model.MBrowse;
 import org.adempiere.model.MBrowseField;
 import org.adempiere.model.MView;
@@ -65,26 +87,6 @@ import org.compiere.model.GridTab;
 import org.compiere.model.GridTabVO;
 import org.compiere.model.GridWindow;
 import org.compiere.model.GridWindowVO;
-import org.adempiere.core.domains.models.I_AD_ChangeLog;
-import org.adempiere.core.domains.models.I_AD_Client;
-import org.adempiere.core.domains.models.I_AD_Column;
-import org.adempiere.core.domains.models.I_AD_Element;
-import org.adempiere.core.domains.models.I_AD_Field;
-import org.adempiere.core.domains.models.I_AD_Org;
-import org.adempiere.core.domains.models.I_AD_Preference;
-import org.adempiere.core.domains.models.I_AD_PrintFormat;
-import org.adempiere.core.domains.models.I_AD_Private_Access;
-import org.adempiere.core.domains.models.I_AD_Process;
-import org.adempiere.core.domains.models.I_AD_Process_Para;
-import org.adempiere.core.domains.models.I_AD_Record_Access;
-import org.adempiere.core.domains.models.I_AD_ReportView;
-import org.adempiere.core.domains.models.I_AD_Role;
-import org.adempiere.core.domains.models.I_AD_Tab;
-import org.adempiere.core.domains.models.I_AD_User;
-import org.adempiere.core.domains.models.I_AD_Window;
-import org.adempiere.core.domains.models.I_CM_Chat;
-import org.adempiere.core.domains.models.I_C_Element;
-import org.adempiere.core.domains.models.I_R_MailText;
 import org.compiere.model.MChangeLog;
 import org.compiere.model.MChat;
 import org.compiere.model.MChatEntry;
@@ -123,18 +125,6 @@ import org.compiere.util.MimeType;
 import org.compiere.util.Msg;
 import org.compiere.util.Trx;
 import org.compiere.util.Util;
-import org.spin.base.db.OperatorUtil;
-import org.spin.base.db.WhereUtil;
-import org.spin.base.ui.UserInterfaceConvertUtil;
-import org.spin.base.util.ContextManager;
-import org.spin.base.util.ConvertUtil;
-import org.spin.base.util.DictionaryUtil;
-import org.spin.base.util.LookupUtil;
-import org.spin.base.util.RecordUtil;
-import org.spin.base.util.ReferenceInfo;
-import org.spin.base.util.ReferenceUtil;
-import org.spin.base.util.SessionManager;
-import org.spin.base.util.ValueUtil;
 import org.spin.backend.grpc.common.ChatEntry;
 import org.spin.backend.grpc.common.ContextInfoValue;
 import org.spin.backend.grpc.common.CreateChatEntryRequest;
@@ -202,7 +192,22 @@ import org.spin.backend.grpc.common.UpdateBrowserEntityRequest;
 import org.spin.backend.grpc.common.UpdateTabEntityRequest;
 import org.spin.backend.grpc.common.UserInterfaceGrpc.UserInterfaceImplBase;
 import org.spin.backend.grpc.common.Value;
-import org.adempiere.core.domains.models.I_AD_ContextInfo;
+import org.spin.base.db.CountUtil;
+import org.spin.base.db.LimitUtil;
+import org.spin.base.db.OperatorUtil;
+import org.spin.base.db.OrderByUtil;
+import org.spin.base.db.ParameterUtil;
+import org.spin.base.db.QueryUtil;
+import org.spin.base.db.WhereClauseUtil;
+import org.spin.base.ui.UserInterfaceConvertUtil;
+import org.spin.base.util.ContextManager;
+import org.spin.base.util.ConvertUtil;
+import org.spin.base.util.LookupUtil;
+import org.spin.base.util.RecordUtil;
+import org.spin.base.util.ReferenceInfo;
+import org.spin.base.util.ReferenceUtil;
+import org.spin.base.util.SessionManager;
+import org.spin.base.util.ValueUtil;
 import org.spin.model.MADContextInfo;
 import org.spin.util.ASPUtil;
 import org.spin.util.AbstractExportFormat;
@@ -919,7 +924,9 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 					.asRuntimeException());
 		}
 	}
-	
+
+
+
 	@Override
 	public void getTabEntity(GetTabEntityRequest request, StreamObserver<Entity> responseObserver) {
 		try {
@@ -932,10 +939,12 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 			responseObserver.onCompleted();
 		} catch (Exception e) {
 			log.severe(e.getLocalizedMessage());
+			e.printStackTrace();
 			responseObserver.onError(Status.INTERNAL
 				.withDescription(e.getLocalizedMessage())
 				.withCause(e)
-				.asRuntimeException());
+				.asRuntimeException()
+			);
 		}
 	}
 	/**
@@ -944,7 +953,6 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 	 * @return
 	 */
 	private Entity.Builder getEntity(GetTabEntityRequest request) {
-		
 		if (Util.isEmpty(request.getTabUuid(), true)) {
 			throw new AdempiereException("@FillMandatory@ @AD_Tab_ID@");
 		}
@@ -962,7 +970,7 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 		MTable table = MTable.get(Env.getCtx(), tab.getAD_Table_ID());
 		String tableName = table.getTableName();
 
-		String sql = DictionaryUtil.getQueryWithReferencesFromTab(tab);
+		String sql = QueryUtil.getTabQueryWithReferences(tab);
 		// add filter
 		StringBuffer whereClause = new StringBuffer()
 			.append(" WHERE ")
@@ -985,11 +993,11 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 			
 			//	SELECT Key, Value, Name FROM ...
 			pstmt = DB.prepareStatement(sql, null);
+
 			// add query parameters
-			AtomicInteger parameterIndex = new AtomicInteger(1);
-			ValueUtil.setParameterFromObject(pstmt, request.getUuid(), parameterIndex.getAndIncrement());
+			pstmt.setString(1, request.getUuid());
 			if (request.getId() > 0) {
-				ValueUtil.setParameterFromObject(pstmt, request.getId(), parameterIndex.get());
+				pstmt.setInt(2, request.getId());
 			}
 
 			//	Get from Query
@@ -1024,11 +1032,13 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 						}
 					} catch (Exception e) {
 						log.severe(e.getLocalizedMessage());
+						e.printStackTrace();
 					}
 				}
 			}
 		} catch (Exception e) {
 			log.severe(e.getLocalizedMessage());
+			e.printStackTrace();
 		} finally {
 			DB.close(rs, pstmt);
 			rs = null;
@@ -1038,6 +1048,8 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 		//	Return
 		return valueObjectBuilder;
 	}
+
+
 
 	@Override
 	public void listTabEntities(ListTabEntitiesRequest request, StreamObserver<ListEntitiesResponse> responseObserver) {
@@ -1081,7 +1093,7 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 		ContextManager.setContextWithAttributes(windowNo, context, request.getContextAttributesList());
 
 		// get where clause including link column and parent column
-		String where = DictionaryUtil.getSQLWhereClauseFromTab(context, tab, null);
+		String where = WhereClauseUtil.getTabWhereClauseFromParentTabs(context, tab, null);
 		String parsedWhereClause = Env.parseContext(context, windowNo, where, false);
 		if (Util.isEmpty(parsedWhereClause, true) && !Util.isEmpty(where, true)) {
 			throw new AdempiereException("@AD_Tab_ID@ @WhereClause@ @Unparseable@");
@@ -1091,7 +1103,7 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 		List<Object> params = new ArrayList<>();
 
 		//	For dynamic condition
-		String dynamicWhere = WhereUtil.getWhereClauseFromCriteria(criteria, tableName, params);
+		String dynamicWhere = WhereClauseUtil.getWhereClauseFromCriteria(criteria, tableName, params);
 		if(!Util.isEmpty(dynamicWhere, true)) {
 			if(!Util.isEmpty(whereClause.toString(), true)) {
 				whereClause.append(" AND ");
@@ -1111,14 +1123,14 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 		}
 		//	Get page and count
 		String nexPageToken = null;
-		int pageNumber = RecordUtil.getPageNumber(SessionManager.getSessionUuid(), request.getPageToken());
-		int limit = RecordUtil.getPageSize(request.getPageSize());
+		int pageNumber = LimitUtil.getPageNumber(SessionManager.getSessionUuid(), request.getPageToken());
+		int limit = LimitUtil.getPageSize(request.getPageSize());
 		int offset = (pageNumber - 1) * limit;
 		int count = 0;
 
 		ListEntitiesResponse.Builder builder = ListEntitiesResponse.newBuilder();
 		//	
-		StringBuilder sql = new StringBuilder(DictionaryUtil.getQueryWithReferencesFromTab(tab));
+		StringBuilder sql = new StringBuilder(QueryUtil.getTabQueryWithReferences(tab));
 		String sqlWithRoleAccess = MRole.getDefault()
 			.addAccessSQL(
 					sql.toString(),
@@ -1139,17 +1151,17 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 		}
 
 		//	Count records
-		count = RecordUtil.countRecords(parsedSQL, tableName, params);
+		count = CountUtil.countRecords(parsedSQL, tableName, params);
 		//	Add Row Number
-		parsedSQL = RecordUtil.getQueryWithLimit(parsedSQL, limit, offset);
+		parsedSQL = LimitUtil.getQueryWithLimit(parsedSQL, limit, offset);
 		//	Add Order By
 		parsedSQL = parsedSQL + orderByClause;
 		builder = RecordUtil.convertListEntitiesResult(MTable.get(Env.getCtx(), tableName), parsedSQL, params);
 		//	
 		builder.setRecordCount(count);
 		//	Set page token
-		if(RecordUtil.isValidNextPageToken(count, offset, limit)) {
-			nexPageToken = RecordUtil.getPagePrefix(SessionManager.getSessionUuid()) + (pageNumber + 1);
+		if(LimitUtil.isValidNextPageToken(count, offset, limit)) {
+			nexPageToken = LimitUtil.getPagePrefix(SessionManager.getSessionUuid()) + (pageNumber + 1);
 		}
 		//	Set next page
 		builder.setNextPageToken(ValueUtil.validateNull(nexPageToken));
@@ -1345,7 +1357,7 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 		ContextManager.setContextWithAttributes(windowNo, Env.getCtx(), request.getContextAttributesList());
 
 		//
-		StringBuilder sql = new StringBuilder(DictionaryUtil.getQueryWithReferencesFromColumns(table));
+		StringBuilder sql = new StringBuilder(QueryUtil.getTableQueryWithReferences(table));
 
 		// add where with access restriction
 		String sqlWithRoleAccess = MRole.getDefault(Env.getCtx(), false)
@@ -1359,7 +1371,7 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 		StringBuffer whereClause = new StringBuffer();
 
 		// validation code of field
-		String validationCode = DictionaryUtil.getValidationCodeWithAlias(tableName, reference.ValidationCode);
+		String validationCode = WhereClauseUtil.getWhereRestrictionsWithAlias(tableName, reference.ValidationCode);
 		String parsedValidationCode = Env.parseContext(Env.getCtx(), windowNo, validationCode, false);
 		if (!Util.isEmpty(reference.ValidationCode, true)) {
 			if (Util.isEmpty(parsedValidationCode, true)) {
@@ -1370,7 +1382,7 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 
 		//	For dynamic condition
 		List<Object> params = new ArrayList<>(); // includes on filters criteria
-		String dynamicWhere = WhereUtil.getWhereClauseFromCriteria(request.getFilters(), tableName, params);
+		String dynamicWhere = WhereClauseUtil.getWhereClauseFromCriteria(request.getFilters(), tableName, params);
 		if (!Util.isEmpty(dynamicWhere, true)) {
 			//	Add includes first AND
 			whereClause.append(" AND ")
@@ -1383,24 +1395,24 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 		String parsedSQL = RecordUtil.addSearchValueAndGet(sqlWithRoleAccess, tableName, request.getSearchValue(), false, params);
 
 		//	Get page and count
-		int pageNumber = RecordUtil.getPageNumber(SessionManager.getSessionUuid(), request.getPageToken());
-		int limit = RecordUtil.getPageSize(request.getPageSize());
+		int pageNumber = LimitUtil.getPageNumber(SessionManager.getSessionUuid(), request.getPageToken());
+		int limit = LimitUtil.getPageSize(request.getPageSize());
 		int offset = (pageNumber - 1) * limit;
 		int count = 0;
 
 		ListEntitiesResponse.Builder builder = ListEntitiesResponse.newBuilder();
 		
 		//	Count records
-		count = RecordUtil.countRecords(parsedSQL, tableName, params);
+		count = CountUtil.countRecords(parsedSQL, tableName, params);
 		//	Add Row Number
-		parsedSQL = RecordUtil.getQueryWithLimit(parsedSQL, limit, offset);
+		parsedSQL = LimitUtil.getQueryWithLimit(parsedSQL, limit, offset);
 		builder = RecordUtil.convertListEntitiesResult(MTable.get(Env.getCtx(), tableName), parsedSQL, params);
 		//	
 		builder.setRecordCount(count);
 		//	Set page token
 		String nexPageToken = null;
-		if(RecordUtil.isValidNextPageToken(count, offset, limit)) {
-			nexPageToken = RecordUtil.getPagePrefix(SessionManager.getSessionUuid()) + (pageNumber + 1);
+		if(LimitUtil.isValidNextPageToken(count, offset, limit)) {
+			nexPageToken = LimitUtil.getPagePrefix(SessionManager.getSessionUuid()) + (pageNumber + 1);
 		}
 		//	Set next page
 		builder.setNextPageToken(ValueUtil.validateNull(nexPageToken));
@@ -2472,7 +2484,7 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 				// log.warning(e.getLocalizedMessage());
 			}
 		}
-		if (ReferenceUtil.validateReference(referenceId)) {
+		if (ReferenceUtil.validateReference(referenceId) || DisplayType.Button == referenceId) {
 			if(referenceId == DisplayType.List) {
 				// (') (text) (') or (") (text) (")
 				String singleQuotesPattern = "('|\")(\\w+)('|\")";
@@ -2489,6 +2501,20 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 				MRefList referenceList = MRefList.get(Env.getCtx(), referenceValueId, defaultValueList, null);
 				builder = convertDefaultValueFromResult(referenceList.getValue(), referenceList.getUUID(), referenceList.getValue(), referenceList.get_Translation(MRefList.COLUMNNAME_Name));
 			} else {
+				if (DisplayType.Button == referenceId) {
+					if (columnName.equals("Record_ID")) {
+						defaultValueAsObject = Integer.valueOf(defaultValueAsObject.toString());
+						int tableId = Env.getContextAsInt(Env.getCtx(), windowNo, I_AD_Table.COLUMNNAME_AD_Table_ID);
+						MTable table = MTable.get(Env.getCtx(), tableId);
+						String tableKeyColumn = table.getTableName() + "_ID";
+						referenceId = DisplayType.TableDir;
+						columnName = tableKeyColumn;
+					} else {
+						builder.putValues(columnName, ValueUtil.getValueFromObject(defaultValueAsObject).build());
+						return builder;
+					}
+				}
+
 				MLookupInfo lookupInfo = ReferenceUtil.getReferenceLookupInfo(referenceId, referenceValueId, columnName, validationRuleId);
 				if(!Util.isEmpty(lookupInfo.QueryDirect)) {
 					String sql = MRole.getDefault(Env.getCtx(), false).addAccessSQL(lookupInfo.QueryDirect,
@@ -2498,7 +2524,8 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 					try {
 						//	SELECT Key, Value, Name FROM ...
 						pstmt = DB.prepareStatement(sql.toString(), null);
-						ValueUtil.setParameterFromObject(pstmt, defaultValueAsObject, 1);
+						DB.setParameter(pstmt, 1, defaultValueAsObject);
+
 						//	Get from Query
 						rs = pstmt.executeQuery();
 						if (rs.next()) {
@@ -2644,7 +2671,8 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 		try {
 			//	SELECT Key, Value, Name FROM ...
 			pstmt = DB.prepareStatement(sql.toString(), null);
-			ValueUtil.setParameterFromObject(pstmt, request.getId(), 1);
+			pstmt.setInt(1, request.getId());
+
 			//	Get from Query
 			rs = pstmt.executeQuery();
 			if (rs.next()) {
@@ -2749,28 +2777,26 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 		String parsedSQL = RecordUtil.addSearchValueAndGet(sqlWithRoleAccess, reference.TableName, searchValue, parameters);
 
 		//	Get page and count
-		int count = RecordUtil.countRecords(parsedSQL, reference.TableName, parameters);
+		int count = CountUtil.countRecords(parsedSQL, reference.TableName, parameters);
 		String nexPageToken = null;
-		int pageNumber = RecordUtil.getPageNumber(SessionManager.getSessionUuid(), pageToken);
-		int limit = RecordUtil.getPageSize(pageSize);
+		int pageNumber = LimitUtil.getPageNumber(SessionManager.getSessionUuid(), pageToken);
+		int limit = LimitUtil.getPageSize(pageSize);
 		int offset = (pageNumber - 1) * limit;
 		//	Set page token
-		if (RecordUtil.isValidNextPageToken(count, offset, limit)) {
-			nexPageToken = RecordUtil.getPagePrefix(SessionManager.getSessionUuid()) + (pageNumber + 1);
+		if (LimitUtil.isValidNextPageToken(count, offset, limit)) {
+			nexPageToken = LimitUtil.getPagePrefix(SessionManager.getSessionUuid()) + (pageNumber + 1);
 		}
 
 		//	Add Row Number
-		parsedSQL = RecordUtil.getQueryWithLimit(parsedSQL, limit, offset);
+		parsedSQL = LimitUtil.getQueryWithLimit(parsedSQL, limit, offset);
 		ListLookupItemsResponse.Builder builder = ListLookupItemsResponse.newBuilder();
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
 		try {
 			//	SELECT Key, Value, Name FROM ...
 			pstmt = DB.prepareStatement(parsedSQL, null);
-			AtomicInteger parameterIndex = new AtomicInteger(1);
-			for(Object value : parameters) {
-				ValueUtil.setParameterFromObject(pstmt, value, parameterIndex.getAndIncrement());
-			} 
+			ParameterUtil.setParametersFromObjectsList(pstmt, parameters);
+
 			//	Get from Query
 			rs = pstmt.executeQuery();
 			while(rs.next()) {
@@ -2910,7 +2936,7 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 		ContextManager.setContextWithAttributes(windowNo, context, parameterMap, false);
 
 		//	get query columns
-		String query = DictionaryUtil.addQueryReferencesFromBrowser(browser);
+		String query = QueryUtil.getBrowserQueryWithReferences(browser);
 		String sql = Env.parseContext(context, windowNo, query, false);
 		if (Util.isEmpty(sql, true)) {
 			throw new AdempiereException("@AD_Browse_ID@ @SQL@ @Unparseable@");
@@ -2943,7 +2969,7 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 
 		//	For dynamic condition
 		List<Object> filterValues = new ArrayList<Object>();
-		String dynamicWhere = WhereUtil.getBrowserWhereClauseFromCriteria(
+		String dynamicWhere = WhereClauseUtil.getBrowserWhereClauseFromCriteria(
 			browser,
 			criteria,
 			filterValues
@@ -2960,20 +2986,20 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 			sqlWithRoleAccess += whereClause;
 		}
 
-		String orderByClause = DictionaryUtil.getSQLOrderBy(browser);
+		String orderByClause = OrderByUtil.getBrowseOrderBy(browser);
 		if (!Util.isEmpty(orderByClause, true)) {
 			orderByClause = " ORDER BY " + orderByClause;
 		}
 
 		//	Get page and count
-		int count = RecordUtil.countRecords(sqlWithRoleAccess, tableName, tableNameAlias, filterValues);
+		int count = CountUtil.countRecords(sqlWithRoleAccess, tableName, tableNameAlias, filterValues);
 		String nexPageToken = null;
-		int pageNumber = RecordUtil.getPageNumber(SessionManager.getSessionUuid(), request.getPageToken());
-		int limit = RecordUtil.getPageSize(request.getPageSize());
+		int pageNumber = LimitUtil.getPageNumber(SessionManager.getSessionUuid(), request.getPageToken());
+		int limit = LimitUtil.getPageSize(request.getPageSize());
 		int offset = (pageNumber - 1) * limit;
 
 		//	Add Row Number
-		String parsedSQL = RecordUtil.getQueryWithLimit(sqlWithRoleAccess, limit, offset);
+		String parsedSQL = LimitUtil.getQueryWithLimit(sqlWithRoleAccess, limit, offset);
 		//	Add Order By
 		parsedSQL = parsedSQL + orderByClause;
 		//	Return
@@ -3006,10 +3032,8 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 			}
 			//	SELECT Key, Value, Name FROM ...
 			pstmt = DB.prepareStatement(sql, null);
-			AtomicInteger parameterIndex = new AtomicInteger(1);
-			for(Object value : values) {
-				ValueUtil.setParameterFromObject(pstmt, value, parameterIndex.getAndIncrement());
-			} 
+			ParameterUtil.setParametersFromObjectsList(pstmt, values);
+
 			//	Get from Query
 			rs = pstmt.executeQuery();
 			while(rs.next()) {
@@ -3483,8 +3507,8 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 		int count = query.count();
 
 		String nexPageToken = null;
-		int pageNumber = RecordUtil.getPageNumber(SessionManager.getSessionUuid(), request.getPageToken());
-		int limit = RecordUtil.getPageSize(request.getPageSize());
+		int pageNumber = LimitUtil.getPageNumber(SessionManager.getSessionUuid(), request.getPageToken());
+		int limit = LimitUtil.getPageSize(request.getPageSize());
 		int offset = (pageNumber - 1) * limit;
 
 		List<PO> sequencesList = query.setLimit(limit, offset).list();
@@ -3524,8 +3548,8 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 		});
 
 		// Set page token
-		if (RecordUtil.isValidNextPageToken(count, offset, limit)) {
-			nexPageToken = RecordUtil.getPagePrefix(SessionManager.getSessionUuid()) + (pageNumber + 1);
+		if (LimitUtil.isValidNextPageToken(count, offset, limit)) {
+			nexPageToken = LimitUtil.getPagePrefix(SessionManager.getSessionUuid()) + (pageNumber + 1);
 		}
 		//  Set next page
 		builderList.setNextPageToken(ValueUtil.validateNull(nexPageToken));
@@ -3691,7 +3715,7 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 			}
 
 			table = MTable.get(context, tab.getAD_Table_ID());
-			final String whereTab = org.spin.base.dictionary.DictionaryUtil.getWhereClauseFromTab(tab.getAD_Tab_ID());
+			final String whereTab = WhereClauseUtil.getWhereClauseFromTab(tab.getAD_Tab_ID());
 			//	Fill context
 			int windowNo = ThreadLocalRandom.current().nextInt(1, 8996 + 1);
 			ContextManager.setContextWithAttributes(windowNo, context, request.getContextAttributesList());
@@ -3857,13 +3881,13 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 		builderList.setRecordCount(recordCount);
 
 		String nexPageToken = null;
-		int pageNumber = RecordUtil.getPageNumber(SessionManager.getSessionUuid(), request.getPageToken());
-		int limit = RecordUtil.getPageSize(request.getPageSize());
+		int pageNumber = LimitUtil.getPageNumber(SessionManager.getSessionUuid(), request.getPageToken());
+		int limit = LimitUtil.getPageSize(request.getPageSize());
 		int offset = (pageNumber - 1) * limit;
 
 		// Set page token
-		if (RecordUtil.isValidNextPageToken(recordCount, offset, limit)) {
-			nexPageToken = RecordUtil.getPagePrefix(SessionManager.getSessionUuid()) + (pageNumber + 1);
+		if (LimitUtil.isValidNextPageToken(recordCount, offset, limit)) {
+			nexPageToken = LimitUtil.getPagePrefix(SessionManager.getSessionUuid()) + (pageNumber + 1);
 		}
 		builderList.setNextPageToken(ValueUtil.validateNull(nexPageToken));
 

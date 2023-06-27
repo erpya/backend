@@ -53,7 +53,8 @@ import org.compiere.util.Env;
 import org.compiere.util.TimeUtil;
 import org.compiere.util.Trx;
 import org.compiere.util.Util;
-import org.spin.base.db.WhereUtil;
+import org.spin.base.db.LimitUtil;
+import org.spin.base.db.WhereClauseUtil;
 import org.spin.base.util.ContextManager;
 import org.spin.base.util.ConvertUtil;
 import org.spin.base.util.RecordUtil;
@@ -285,8 +286,8 @@ public class CoreFunctionalityImplementation extends CoreFunctionalityImplBase {
 	private ListBusinessPartnersResponse.Builder getBusinessPartnerList(ListBusinessPartnersRequest request) {
 		ListBusinessPartnersResponse.Builder builder = ListBusinessPartnersResponse.newBuilder();
 		String nexPageToken = null;
-		int pageNumber = RecordUtil.getPageNumber(SessionManager.getSessionUuid(), request.getPageToken());
-		int limit = RecordUtil.getPageSize(request.getPageSize());
+		int pageNumber = LimitUtil.getPageNumber(SessionManager.getSessionUuid(), request.getPageToken());
+		int limit = LimitUtil.getPageSize(request.getPageSize());
 		int offset = (pageNumber - 1) * limit;
 
 		//	Get business partner list
@@ -375,7 +376,7 @@ public class CoreFunctionalityImplementation extends CoreFunctionalityImplBase {
 			parameters.add(request.getPostalCode());
 		}
 		//	
-		String criteriaWhereClause = WhereUtil.getWhereClauseFromCriteria(request.getCriteria(), I_C_BPartner.Table_Name, parameters);
+		String criteriaWhereClause = WhereClauseUtil.getWhereClauseFromCriteria(request.getCriteria(), I_C_BPartner.Table_Name, parameters);
 		if(whereClause.length() > 0
 				&& !Util.isEmpty(criteriaWhereClause)) {
 			whereClause.append(" AND (").append(criteriaWhereClause).append(")");
@@ -395,7 +396,7 @@ public class CoreFunctionalityImplementation extends CoreFunctionalityImplBase {
 		builder.setRecordCount(count);
 		//	Set page token
 		if(count > limit) {
-			nexPageToken = RecordUtil.getPagePrefix(SessionManager.getSessionUuid()) + (pageNumber + 1);
+			nexPageToken = LimitUtil.getPagePrefix(SessionManager.getSessionUuid()) + (pageNumber + 1);
 		}
 		//	Set next page
 		builder.setNextPageToken(ValueUtil.validateNull(nexPageToken));
@@ -632,7 +633,7 @@ public class CoreFunctionalityImplementation extends CoreFunctionalityImplBase {
 			parameters.add(request.getPostalCode());
 		}
 		//	
-		String criteriaWhereClause = WhereUtil.getWhereClauseFromCriteria(request.getCriteria(), parameters);
+		String criteriaWhereClause = WhereClauseUtil.getWhereClauseFromCriteria(request.getCriteria(), parameters);
 		if(whereClause.length() > 0
 				&& !Util.isEmpty(criteriaWhereClause)) {
 			whereClause.append(" AND (").append(criteriaWhereClause).append(")");
@@ -772,8 +773,8 @@ public class CoreFunctionalityImplementation extends CoreFunctionalityImplBase {
 
 		//	Get page and count
 		String nexPageToken = null;
-		int pageNumber = RecordUtil.getPageNumber(SessionManager.getSessionUuid(), request.getPageToken());
-		int limit = RecordUtil.getPageSize(request.getPageSize());
+		int pageNumber = LimitUtil.getPageNumber(SessionManager.getSessionUuid(), request.getPageToken());
+		int limit = LimitUtil.getPageSize(request.getPageSize());
 		int offset = (pageNumber - 1) * limit;
 		Query query = new Query(Env.getCtx(), I_AD_Org.Table_Name, whereClause, null)
 			.setParameters(parameters)
@@ -793,7 +794,7 @@ public class CoreFunctionalityImplementation extends CoreFunctionalityImplBase {
 		builder.setRecordCount(count);
 		//	Set page token
 		if(count > limit) {
-			nexPageToken = RecordUtil.getPagePrefix(SessionManager.getSessionUuid()) + (pageNumber + 1);
+			nexPageToken = LimitUtil.getPagePrefix(SessionManager.getSessionUuid()) + (pageNumber + 1);
 		}
 		//	Set netxt page
 		builder.setNextPageToken(ValueUtil.validateNull(nexPageToken));
@@ -830,8 +831,8 @@ public class CoreFunctionalityImplementation extends CoreFunctionalityImplBase {
 		ListWarehousesResponse.Builder builder = ListWarehousesResponse.newBuilder();
 		//	Get page and count
 		String nexPageToken = null;
-		int pageNumber = RecordUtil.getPageNumber(SessionManager.getSessionUuid(), request.getPageToken());
-		int limit = RecordUtil.getPageSize(request.getPageSize());
+		int pageNumber = LimitUtil.getPageNumber(SessionManager.getSessionUuid(), request.getPageToken());
+		int limit = LimitUtil.getPageSize(request.getPageSize());
 		int offset = (pageNumber - 1) * limit;
 
 		int organizationId = request.getOrganizationId();
@@ -861,7 +862,7 @@ public class CoreFunctionalityImplementation extends CoreFunctionalityImplBase {
 		builder.setRecordCount(count);
 		//	Set page token
 		if(count > limit) {
-			nexPageToken = RecordUtil.getPagePrefix(SessionManager.getSessionUuid()) + (pageNumber + 1);
+			nexPageToken = LimitUtil.getPagePrefix(SessionManager.getSessionUuid()) + (pageNumber + 1);
 		}
 		//	Set netxt page
 		builder.setNextPageToken(ValueUtil.validateNull(nexPageToken));

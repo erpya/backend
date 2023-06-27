@@ -58,6 +58,9 @@ import org.spin.backend.grpc.form.ListPayrollMovementsRequest;
 import org.spin.backend.grpc.form.ListPayrollProcessRequest;
 import org.spin.backend.grpc.form.PayrollActionNoticeGrpc.PayrollActionNoticeImplBase;
 import org.spin.backend.grpc.form.SavePayrollMovementRequest;
+import org.spin.base.db.ParameterUtil;
+import org.spin.base.db.CountUtil;
+import org.spin.base.db.LimitUtil;
 import org.spin.base.util.LookupUtil;
 import org.spin.base.util.RecordUtil;
 import org.spin.base.util.SessionManager;
@@ -85,6 +88,7 @@ public class PayrollActionNoticeServiceImplementation extends PayrollActionNotic
 			responseObserver.onCompleted();
 		} catch (Exception e) {
 			log.severe(e.getLocalizedMessage());
+			e.printStackTrace();
 			responseObserver.onError(Status.INTERNAL
 				.withDescription(e.getLocalizedMessage())
 				.withCause(e)
@@ -111,12 +115,12 @@ public class PayrollActionNoticeServiceImplementation extends PayrollActionNotic
 		sql += " ORDER BY DocumentNo, Name";
 
 		//	Get page and count
-		int pageNumber = RecordUtil.getPageNumber(SessionManager.getSessionUuid(), request.getPageToken());
-		int limit = RecordUtil.getPageSize(request.getPageSize());
+		int pageNumber = LimitUtil.getPageNumber(SessionManager.getSessionUuid(), request.getPageToken());
+		int limit = LimitUtil.getPageSize(request.getPageSize());
 		int offset = (pageNumber - 1) * limit;
 
 		//	Add Row Number
-		sql = RecordUtil.getQueryWithLimit(sql, limit, offset);
+		sql = LimitUtil.getQueryWithLimit(sql, limit, offset);
 
 		ListLookupItemsResponse.Builder lookupsList = ListLookupItemsResponse.newBuilder();
 		PreparedStatement pstmt = null;
@@ -124,7 +128,7 @@ public class PayrollActionNoticeServiceImplementation extends PayrollActionNotic
 		try {
 			//	SELECT Key, Value, Name FROM ...
 			pstmt = DB.prepareStatement(sql, null);
-			ValueUtil.setParametersFromObjectsList(pstmt, parameters);
+			ParameterUtil.setParametersFromObjectsList(pstmt, parameters);
 
 			//	Get from Query
 			rs = pstmt.executeQuery();
@@ -142,6 +146,7 @@ public class PayrollActionNoticeServiceImplementation extends PayrollActionNotic
 			}
 		} catch (Exception e) {
 			log.severe(e.getLocalizedMessage());
+			e.printStackTrace();
 			throw new AdempiereException(e);
 		} finally {
 			DB.close(rs, pstmt);
@@ -150,13 +155,13 @@ public class PayrollActionNoticeServiceImplementation extends PayrollActionNotic
 		}
 		
 		//	Count records
-		int count = RecordUtil.countRecords(sql, MHRProcess.Table_Name, parameters);
+		int count = CountUtil.countRecords(sql, MHRProcess.Table_Name, parameters);
 		lookupsList.setRecordCount(count);
 
 		//	Set page token
 		String nextPageToken = "";
-		if (RecordUtil.isValidNextPageToken(count, offset, limit)) {
-			nextPageToken = RecordUtil.getPagePrefix(SessionManager.getSessionUuid()) + (pageNumber + 1);
+		if (LimitUtil.isValidNextPageToken(count, offset, limit)) {
+			nextPageToken = LimitUtil.getPagePrefix(SessionManager.getSessionUuid()) + (pageNumber + 1);
 		}
 		lookupsList.setNextPageToken(nextPageToken);
 		
@@ -235,19 +240,19 @@ public class PayrollActionNoticeServiceImplementation extends PayrollActionNotic
 		String sql = selectQuery + whereClause + " ORDER BY " + LookupUtil.DISPLAY_COLUMN_KEY;
 
 		//	Get page and count
-		int pageNumber = RecordUtil.getPageNumber(SessionManager.getSessionUuid(), request.getPageToken());
-		int limit = RecordUtil.getPageSize(request.getPageSize());
+		int pageNumber = LimitUtil.getPageNumber(SessionManager.getSessionUuid(), request.getPageToken());
+		int limit = LimitUtil.getPageSize(request.getPageSize());
 		int offset = (pageNumber - 1) * limit;
 
 		//	Add Row Number
-		sql = RecordUtil.getQueryWithLimit(sql, limit, offset);
+		sql = LimitUtil.getQueryWithLimit(sql, limit, offset);
 
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
 		try {
 			//	SELECT Key, Value, Name FROM ...
 			pstmt = DB.prepareStatement(sql, null);
-			ValueUtil.setParametersFromObjectsList(pstmt, parameters);
+			ParameterUtil.setParametersFromObjectsList(pstmt, parameters);
 
 			//	Get from Query
 			rs = pstmt.executeQuery();
@@ -273,13 +278,13 @@ public class PayrollActionNoticeServiceImplementation extends PayrollActionNotic
 		}
 
 		//	Count records
-		int count = RecordUtil.countRecords(sql, MHRProcess.Table_Name, parameters);
+		int count = CountUtil.countRecords(sql, MHRProcess.Table_Name, parameters);
 		lookupsList.setRecordCount(count);
 
 		//	Set page token
 		String nextPageToken = "";
-		if (RecordUtil.isValidNextPageToken(count, offset, limit)) {
-			nextPageToken = RecordUtil.getPagePrefix(SessionManager.getSessionUuid()) + (pageNumber + 1);
+		if (LimitUtil.isValidNextPageToken(count, offset, limit)) {
+			nextPageToken = LimitUtil.getPagePrefix(SessionManager.getSessionUuid()) + (pageNumber + 1);
 		}
 		lookupsList.setNextPageToken(nextPageToken);
 
@@ -298,6 +303,7 @@ public class PayrollActionNoticeServiceImplementation extends PayrollActionNotic
 			responseObserver.onCompleted();
 		} catch (Exception e) {
 			log.severe(e.getLocalizedMessage());
+			e.printStackTrace();
 			responseObserver.onError(Status.INTERNAL
 				.withDescription(e.getLocalizedMessage())
 				.withCause(e)
@@ -382,18 +388,18 @@ public class PayrollActionNoticeServiceImplementation extends PayrollActionNotic
 		String sql = selectQuery + whereClause + " ORDER BY " + LookupUtil.DISPLAY_COLUMN_KEY;
 
 		//	Get page and count
-		int pageNumber = RecordUtil.getPageNumber(SessionManager.getSessionUuid(), request.getPageToken());
-		int limit = RecordUtil.getPageSize(request.getPageSize());
+		int pageNumber = LimitUtil.getPageNumber(SessionManager.getSessionUuid(), request.getPageToken());
+		int limit = LimitUtil.getPageSize(request.getPageSize());
 		int offset = (pageNumber - 1) * limit;
 
 		//	Add Row Number
-		sql = RecordUtil.getQueryWithLimit(sql, limit, offset);
+		sql = LimitUtil.getQueryWithLimit(sql, limit, offset);
 
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
 		try {
 			pstmt = DB.prepareStatement(sql, null);
-			ValueUtil.setParametersFromObjectsList(pstmt, parameters);
+			ParameterUtil.setParametersFromObjectsList(pstmt, parameters);
 			
 			//	Get from Query
 			rs = pstmt.executeQuery();
@@ -410,6 +416,7 @@ public class PayrollActionNoticeServiceImplementation extends PayrollActionNotic
 			}
 		} catch (Exception e) {
 			log.severe(e.getLocalizedMessage());
+			e.printStackTrace();
 			throw new AdempiereException(e);
 		} finally {
 			DB.close(rs, pstmt);
@@ -418,13 +425,13 @@ public class PayrollActionNoticeServiceImplementation extends PayrollActionNotic
 		}
 
 		//	Count records
-		int count = RecordUtil.countRecords(sql, MHRProcess.Table_Name, parameters);
+		int count = CountUtil.countRecords(sql, MHRProcess.Table_Name, parameters);
 		listLookups.setRecordCount(count);
 
 		//	Set page token
 		String nextPageToken = "";
-		if (RecordUtil.isValidNextPageToken(count, offset, limit)) {
-			nextPageToken = RecordUtil.getPagePrefix(SessionManager.getSessionUuid()) + (pageNumber + 1);
+		if (LimitUtil.isValidNextPageToken(count, offset, limit)) {
+			nextPageToken = LimitUtil.getPagePrefix(SessionManager.getSessionUuid()) + (pageNumber + 1);
 		}
 		listLookups.setNextPageToken(nextPageToken);
 
