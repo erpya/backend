@@ -143,12 +143,12 @@ dependencies {
 	implementation "org.erpya.adempiere.cloud:cloud-service-management:${customBaseVersion}-1.3.0"
 	implementation "org.erpya.adempiere.locations:additional-withholding-tax:${customBaseVersion}-1.2.5"
 	//	Public Libraries
-	implementation "${baseGroupId}:adempiere-pos-improvements:1.0.0"
 	implementation "${baseGroupId}:withholding-engine:erpya-3.9.4-1.0.1"
 	implementation "${baseGroupId}:location-venezuela:erpya-3.9.4-1.0.0"
-	implementation "${baseGroupId}:adempiere-jwt-token:1.0.0"
-	implementation "${baseGroupId}:adempiere-business-processors:1.0.1"
-	implementation "${baseGroupId}:adempiere-dashboard-improvements:1.0.0"
+	implementation "${baseGroupId}:adempiere-business-processors:1.0.2"
+	implementation "${baseGroupId}:adempiere-jwt-token:1.0.2"
+	implementation "${baseGroupId}:adempiere-dashboard-improvements:1.0.1"
+	implementation "${baseGroupId}:adempiere-pos-improvements:1.0.0"
 	//	Patches
 	implementation "org.erpya.adempiere:patch:1.0.4"
 	//	Migration
