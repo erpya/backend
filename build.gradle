@@ -145,7 +145,7 @@ dependencies {
 	//	Public Libraries
 	implementation "${baseGroupId}:withholding-engine:erpya-3.9.4-1.0.1"
 	implementation "${baseGroupId}:location-venezuela:erpya-3.9.4-1.0.0"
-	implementation "${baseGroupId}:adempiere-business-processors:1.0.3"
+	implementation "${baseGroupId}:adempiere-business-processors:1.0.4"
 	implementation "${baseGroupId}:adempiere-jwt-token:1.0.2"
 	implementation "${baseGroupId}:adempiere-dashboard-improvements:1.0.1"
 	implementation "${baseGroupId}:adempiere-pos-improvements:1.0.0"
