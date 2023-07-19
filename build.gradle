@@ -118,7 +118,7 @@ dependencies {
 	implementation "org.erpya.adempiere.tools:warehouse-management-system-improvements:${customBaseVersion}-1.1.7"
 	implementation "org.erpya.adempiere.tools:print-queue:${customBaseVersion}-1.1.5"
 	implementation "org.erpya.adempiere.tools:telegram-notifier:${customBaseVersion}-1.0.7"
-	implementation "org.erpya.adempiere.tools:hr-time-attendance:${customBaseVersion}-1.1.0"
+	implementation "org.erpya.adempiere.tools:hr-time-attendance:${customBaseVersion}-1.1.1"
 	implementation "org.erpya.adempiere.integrations:mp-integration:${customBaseVersion}-1.1.2"
 	implementation "org.erpya.adempiere.tools:payment-processor:${customBaseVersion}-1.0.1"
 	//	System Administrator Libraries
