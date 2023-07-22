@@ -318,22 +318,19 @@ public class FileManagementServiceImplementation extends FileManagementImplBase 
 	 * @return
 	 */
 	private Attachment.Builder getAttachmentFromEntity(GetAttachmentRequest request) {
-		int tableId = 0;
-		if (!Util.isEmpty(request.getTableName(), true)) {
-			MTable table = MTable.get(Env.getCtx(), request.getTableName());
-			if (table != null && table.getAD_Table_ID() > 0) {
-				tableId = table.getAD_Table_ID();
-			}
-		}
+		// validate and get table
+		MTable table = validateAndGetTable(request.getTableName());
+
 		int recordId = request.getRecordId();
-		if (recordId <= 0) {
-			recordId = RecordUtil.getIdFromUuid(request.getTableName(), request.getRecordUuid(), null);
+		if (recordId <= 0 && !Util.isEmpty(request.getRecordUuid(), true)) {
+			recordId = RecordUtil.getIdFromUuid(table.getTableName(), request.getRecordUuid(), null);
 		}
-		if (tableId > 0 && recordId > 0) {
-			MAttachment attachment = MAttachment.get(Env.getCtx(), tableId, recordId);
-			return convertAttachment(attachment);
+		if (!RecordUtil.isValidId(recordId, table.getAccessLevel())) {
+			return Attachment.newBuilder();
 		}
-		return Attachment.newBuilder();
+
+		MAttachment attachment = MAttachment.get(Env.getCtx(), table.getAD_Table_ID(), recordId);
+		return convertAttachment(attachment);
 	}
 
 
@@ -351,13 +348,32 @@ public class FileManagementServiceImplementation extends FileManagementImplBase 
 			.setUuid(
 				ValueUtil.validateNull(reference.getUUID())
 			)
-			.setFileName(ValueUtil.validateNull(reference.getValidFileName()))
-			.setDescription(ValueUtil.validateNull(reference.getDescription()))
+			.setName(
+				ValueUtil.validateNull(reference.getFileName())
+			)
+			.setFileName(
+				ValueUtil.validateNull(reference.getValidFileName())
+			)
+			.setDescription(
+				ValueUtil.validateNull(reference.getDescription())
+			)
 			.setTextMessage(
 				ValueUtil.validateNull(reference.getTextMsg())
 			)
-			.setContentType(ValueUtil.validateNull(MimeType.getMimeType(reference.getFileName())))
-			.setFileSize(ValueUtil.getDecimalFromBigDecimal(reference.getFileSize()))
+			.setContentType(
+				ValueUtil.validateNull(
+					MimeType.getMimeType(reference.getFileName())
+				)
+			)
+			.setFileSize(ValueUtil.getDecimalFromBigDecimal(
+				reference.getFileSize())
+			)
+			.setCreated(
+				ValueUtil.getLongFromTimestamp(reference.getCreated())
+			)
+			.setUpdated(
+				ValueUtil.getLongFromTimestamp(reference.getUpdated())
+			)
 		;
 	}
 
@@ -440,13 +456,11 @@ public class FileManagementServiceImplementation extends FileManagementImplBase 
 
 		// validate record
 		int recordId = request.getRecordId();
-		if (recordId <= 0) {
-			if (Util.isEmpty(request.getRecordUuid(), true)) {
-				recordId = RecordUtil.getIdFromUuid(request.getTableName(), request.getRecordUuid(), null);
-			}
-			if (recordId <= 0) {
-				throw new AdempiereException("@Record_ID@ / @UUID@ @NotFound@");
-			}
+		if (recordId <= 0 && !Util.isEmpty(request.getRecordUuid(), true)) {
+			recordId = RecordUtil.getIdFromUuid(request.getTableName(), request.getRecordUuid(), null);
+		}
+		if (!RecordUtil.isValidId(recordId, table.getAccessLevel())) {
+			throw new AdempiereException("@Record_ID@ / @UUID@ @NotFound@");
 		}
 		final int recordIdentifier = recordId;
 
@@ -454,6 +468,13 @@ public class FileManagementServiceImplementation extends FileManagementImplBase 
 		Trx.run(transactionName -> {
 			MAttachment attachment = new MAttachment(Env.getCtx(), table.getAD_Table_ID(), recordIdentifier, transactionName);
 			if (attachment.getAD_Attachment_ID() <= 0) {
+				/**
+				 * TODO: `IsDirectLoad` disables `ModelValidator`, `beforeSave` and the `MAttachment.afterSave`
+				 * which calls the `MAttachment.saveLOBData` method but generates an error
+				 * (Null Pointer Exception) since `items` is initialized to null, when it should
+				 * be initialized with a `new ArrayList<MAttachmentEntry>()`.
+				 */
+				attachment.setIsDirectLoad(true); 
 				attachment.saveEx();
 			}
 			MADAttachmentReference attachmentReference = new MADAttachmentReference(Env.getCtx(), 0, transactionName);
@@ -514,7 +535,7 @@ public class FileManagementServiceImplementation extends FileManagementImplBase 
 		}
 
 		if (resourceReference == null || resourceReference.getAD_AttachmentReference_ID() <= 0) {
-			throw new AdempiereException("@AD_AttachmentReference_ID@ Null");
+			throw new AdempiereException("@AD_AttachmentReference_ID@ @NotFound@");
 		}
 		
 		resourceReference.setDescription(request.getDescription());
@@ -626,13 +647,11 @@ public class FileManagementServiceImplementation extends FileManagementImplBase 
 
 		// validate record
 		int recordId = request.getRecordId();
-		if (recordId <= 0) {
-			if (!Util.isEmpty(request.getRecordUuid(), true)) {
-				recordId = RecordUtil.getIdFromUuid(table.getTableName(), request.getRecordUuid(), null);
-			}
-			if (RecordUtil.isValidId(recordId, table.getAccessLevel())) {
-				throw new AdempiereException("@Record_ID@ / @UUID@ @NotFound@");
-			}
+		if (recordId <= 0 && !Util.isEmpty(request.getRecordUuid(), true)) {
+			recordId = RecordUtil.getIdFromUuid(table.getTableName(), request.getRecordUuid(), null);
+		}
+		if (!RecordUtil.isValidId(recordId, table.getAccessLevel())) {
+			throw new AdempiereException("@Record_ID@ / @UUID@ @NotFound@");
 		}
 
 		MAttachment attachment = MAttachment.get(Env.getCtx(), table.getAD_Table_ID(), recordId);
