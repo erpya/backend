@@ -21,8 +21,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.adempiere.exceptions.AdempiereException;
 import org.adempiere.core.domains.models.I_C_Invoice;
+import org.compiere.model.MArchive;
 import org.compiere.model.MAttachment;
 import org.compiere.model.MClientInfo;
+import org.compiere.model.MImage;
 import org.compiere.model.MTable;
 import org.compiere.model.Query;
 import org.compiere.util.CLogger;
@@ -42,6 +44,7 @@ import org.spin.backend.grpc.file_management.GetResourceRequest;
 import org.spin.backend.grpc.file_management.LoadResourceRequest;
 import org.spin.backend.grpc.file_management.Resource;
 import org.spin.backend.grpc.file_management.ResourceReference;
+import org.spin.backend.grpc.file_management.ResourceType;
 import org.spin.backend.grpc.file_management.SetAttachmentDescriptionRequest;
 import org.spin.backend.grpc.file_management.SetResourceReferenceDescriptionRequest;
 import org.spin.backend.grpc.file_management.SetResourceReferenceRequest;
@@ -74,7 +77,7 @@ public class FileManagementServiceImplementation extends FileManagementImplBase 
 	 * Validate client info exists and with configured file handler.
 	 * @return clientInfo
 	 */
-	private MClientInfo validateAndGetClientInfo() {
+	private static MClientInfo validateAndGetClientInfo() {
 		MClientInfo clientInfo = MClientInfo.get(Env.getCtx());
 		if (clientInfo == null || clientInfo.getAD_Client_ID() < 0 || clientInfo.getFileHandler_ID() <= 0) {
 			throw new AdempiereException("@FileHandler_ID@ @NotFound@");
@@ -86,9 +89,9 @@ public class FileManagementServiceImplementation extends FileManagementImplBase 
 
 	/**
 	 * Validate table exists.
-	 * @return clientInfo
+	 * @return table
 	 */
-	private MTable validateAndGetTable(String tableName) {
+	private static MTable validateAndGetTable(String tableName) {
 		// validate table
 		if (Util.isEmpty(tableName, true)) {
 			throw new AdempiereException("@FillMandatory@ @AD_Table_ID@");
@@ -150,7 +153,8 @@ public class FileManagementServiceImplementation extends FileManagementImplBase 
 	 * @throws Exception 
 	 */
 	private void getResource(String resourceUuid, String resourceName, StreamObserver<Resource> responseObserver) throws Exception {
-		if (!AttachmentUtil.getInstance().isValidForClient(Env.getAD_Client_ID(Env.getCtx()))) {
+		int clientId = Env.getAD_Client_ID(Env.getCtx());
+		if (!AttachmentUtil.getInstance().isValidForClient(clientId)) {
 			responseObserver.onError(new AdempiereException("@NotFound@"));
 			return;
 		}
@@ -165,7 +169,7 @@ public class FileManagementServiceImplementation extends FileManagementImplBase 
 		}
 		int attachmentReferenceId = RecordUtil.getIdFromUuid(I_AD_AttachmentReference.Table_Name, resourceUuid, null);
 		byte[] data = AttachmentUtil.getInstance()
-			.withClientId(Env.getAD_Client_ID(Env.getCtx()))
+			.withClientId(clientId)
 			.withAttachmentReferenceId(attachmentReferenceId)
 			.getAttachment();
 		if (data == null) {
@@ -386,10 +390,11 @@ public class FileManagementServiceImplementation extends FileManagementImplBase 
 	 * @return
 	 */
 	public static ResourceReference.Builder convertResourceReference(MADAttachmentReference reference) {
+		ResourceReference.Builder builder = ResourceReference.newBuilder();
 		if (reference == null) {
-			return ResourceReference.newBuilder();
+			return builder;
 		}
-		return ResourceReference.newBuilder()
+		builder
 			.setId(reference.getAD_AttachmentReference_ID())
 			.setUuid(
 				ValueUtil.validateNull(reference.getUUID())
@@ -421,6 +426,22 @@ public class FileManagementServiceImplementation extends FileManagementImplBase 
 				ValueUtil.getLongFromTimestamp(reference.getUpdated())
 			)
 		;
+
+		if(reference.getAD_Image_ID() > 0) {
+			builder.setResourceType(ResourceType.IMAGE)
+				.setResourceId(reference.getAD_Image_ID())
+			;
+		} else if(reference.getAD_Archive_ID() > 0) {
+			builder.setResourceType(ResourceType.ARCHIVE)
+				.setResourceId(reference.getAD_Archive_ID())
+			;
+		} else {
+			builder.setResourceType(ResourceType.ATTACHMENT)
+				.setResourceId(reference.getAD_Attachment_ID())
+			;
+		}
+
+		return builder;
 	}
 
 	/**
@@ -497,41 +518,85 @@ public class FileManagementServiceImplementation extends FileManagementImplBase 
 			throw new AdempiereException("@Error@ @FileInvalidExtension@");
 		}
 
-		// validate and get table
-		MTable table = validateAndGetTable(request.getTableName());
-
-		// validate record
-		int recordId = request.getRecordId();
-		if (recordId <= 0 && !Util.isEmpty(request.getRecordUuid(), true)) {
-			recordId = RecordUtil.getIdFromUuid(request.getTableName(), request.getRecordUuid(), null);
-		}
-		if (!RecordUtil.isValidId(recordId, table.getAccessLevel())) {
-			throw new AdempiereException("@Record_ID@ / @UUID@ @NotFound@");
-		}
-		final int recordIdentifier = recordId;
-
 		AtomicReference<MADAttachmentReference> attachmentReferenceAtomic = new AtomicReference<MADAttachmentReference>();
 		Trx.run(transactionName -> {
-			MAttachment attachment = new MAttachment(Env.getCtx(), table.getAD_Table_ID(), recordIdentifier, transactionName);
-			if (attachment.getAD_Attachment_ID() <= 0) {
-				/**
-				 * TODO: `IsDirectLoad` disables `ModelValidator`, `beforeSave` and the `MAttachment.afterSave`
-				 * which calls the `MAttachment.saveLOBData` method but generates an error
-				 * (Null Pointer Exception) since `items` is initialized to null, when it should
-				 * be initialized with a `new ArrayList<MAttachmentEntry>()`.
-				 */
-				attachment.setIsDirectLoad(true); 
-				attachment.saveEx();
-			}
 			MADAttachmentReference attachmentReference = new MADAttachmentReference(Env.getCtx(), 0, transactionName);
 			attachmentReference.setFileHandler_ID(clientInfo.getFileHandler_ID());
-			attachmentReference.setAD_Attachment_ID(attachment.getAD_Attachment_ID());
 			attachmentReference.setDescription(request.getDescription());
 			attachmentReference.setTextMsg(request.getTextMessage());
 			attachmentReference.setFileName(fileName);
 			// attachmentReference.setFileSize(
 			// 	BigDecimal.valueOf(request.getFileSize())
 			// );
+
+			if(request.getResourceType() == ResourceType.IMAGE) {
+				if (!FileUtil.isValidImage(fileName)) {
+					throw new AdempiereException("@Error@ @FileInvalidExtension@. @attach.image@");	
+				}
+				MImage image = MImage.get(Env.getCtx(), request.getResourceId(), transactionName);
+				if (image == null) {
+					image = new MImage(Env.getCtx(), 0, transactionName);
+				}
+				image.setName(fileName);
+				image.setDescription(request.getDescription());
+				image.saveEx();
+				MADAttachmentReference attachmentReferenceByImage = MADAttachmentReference.getByImageId(
+					Env.getCtx(),
+					clientInfo.getFileHandler_ID(),
+					image.getAD_Image_ID(), transactionName
+				);
+				if (attachmentReferenceByImage != null) {
+					attachmentReference = attachmentReferenceByImage;
+				} else {
+					attachmentReference.setAD_Image_ID(image.getAD_Image_ID());
+				}
+			} else if(request.getResourceType() == ResourceType.ARCHIVE) {
+				MArchive archive = new MArchive(Env.getCtx(), request.getResourceId(), transactionName);
+				archive.setName(fileName);
+				archive.setDescription(request.getDescription());
+				archive.saveEx();
+				MADAttachmentReference attachmentReferenceByArchive = MADAttachmentReference.getByArchiveId(
+					Env.getCtx(),
+					clientInfo.getFileHandler_ID(),
+					archive.getAD_Archive_ID(),
+					transactionName
+				);
+				if (attachmentReferenceByArchive != null) {
+					attachmentReference = attachmentReferenceByArchive;
+				} else {
+					attachmentReference.setAD_Archive_ID(archive.getAD_Archive_ID());
+				}
+			} else {
+				// validate and get table
+				MTable table = validateAndGetTable(request.getTableName());
+
+				// validate record
+				int recordId = request.getRecordId();
+				if (recordId <= 0 && !Util.isEmpty(request.getRecordUuid(), true)) {
+					recordId = RecordUtil.getIdFromUuid(request.getTableName(), request.getRecordUuid(), null);
+				}
+				if (!RecordUtil.isValidId(recordId, table.getAccessLevel())) {
+					throw new AdempiereException("@Record_ID@ / @UUID@ @NotFound@");
+				}
+				final int recordIdentifier = recordId;
+
+				MAttachment attachment = new MAttachment(Env.getCtx(), request.getResourceId(), transactionName);
+				if (attachment.getAD_Attachment_ID() <= 0) {
+					attachment = new MAttachment(Env.getCtx(), table.getAD_Table_ID(), recordIdentifier, transactionName);
+				}
+				if (attachment.getAD_Attachment_ID() <= 0) {
+					/**
+					 * TODO: `IsDirectLoad` disables `ModelValidator`, `beforeSave` and the `MAttachment.afterSave`
+					 * which calls the `MAttachment.saveLOBData` method but generates an error
+					 * (Null Pointer Exception) since `items` is initialized to null, when it should
+					 * be initialized with a `new ArrayList<MAttachmentEntry>()`.
+					 */
+					attachment.setIsDirectLoad(true);
+					attachment.saveEx();
+				}
+				attachmentReference.setAD_Attachment_ID(attachment.getAD_Attachment_ID());
+			}
+
 			attachmentReference.saveEx();
 			//	Remove from cache
 			MADAttachmentReference.resetAttachmentReferenceCache(clientInfo.getFileHandler_ID(), attachmentReference);
@@ -583,10 +648,22 @@ public class FileManagementServiceImplementation extends FileManagementImplBase 
 		if (resourceReference == null || resourceReference.getAD_AttachmentReference_ID() <= 0) {
 			throw new AdempiereException("@AD_AttachmentReference_ID@ @NotFound@");
 		}
-		
+
 		resourceReference.setDescription(request.getDescription());
 		resourceReference.setTextMsg(request.getTextMessage());
 		resourceReference.saveEx();
+
+		// Update parent description
+		if (resourceReference.getAD_Image_ID() > 0) {
+			MImage image = MImage.get(Env.getCtx(), resourceReference.getAD_Image_ID(), null);
+			image.setDescription(request.getDescription());
+			image.saveEx();
+		} else if (resourceReference.getAD_Archive_ID() > 0) {
+			MArchive archive = new MArchive(Env.getCtx(), resourceReference.getAD_Archive_ID(), null);
+			archive.setDescription(request.getDescription());
+			archive.setHelp(request.getTextMessage());
+			archive.saveEx();
+		}
 
 		// reset cache
 		MADAttachmentReference.resetAttachmentReferenceCache(clientInfo.getFileHandler_ID(), resourceReference);
