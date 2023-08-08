@@ -9,7 +9,7 @@ plugins {
 group 'com.nikhilm'
 sourceCompatibility = 1.11
 def grpcVersion = '1.53.0'
-def baseVersion = 'erpya-3.9.4-1.0.1'
+def baseVersion = 'erpya-3.9.4-1.0.2'
 def baseGroupId = 'com.erpya'
 def customBaseVersion = "adempiere-3.9.4"
 def javaMainClass = "org.spin.server.AllInOneServices"
@@ -120,7 +120,7 @@ dependencies {
 	implementation "org.erpya.adempiere.tools:telegram-notifier:${customBaseVersion}-1.0.7"
 	implementation "org.erpya.adempiere.tools:hr-time-attendance:${customBaseVersion}-1.1.1"
 	implementation "org.erpya.adempiere.integrations:mp-integration:${customBaseVersion}-1.1.2"
-	implementation "org.erpya.adempiere.tools:payment-processor:${customBaseVersion}-1.0.5"
+	implementation "org.erpya.adempiere.tools:payment-processor:${customBaseVersion}-1.0.6"
 	//	System Administrator Libraries
 	implementation "org.erpya.adempiere.admin:core-tools:${customBaseVersion}-1.5.2"
 	//	Changes to be add to ADempiere core
@@ -156,6 +156,14 @@ dependencies {
 	//	External Tools
 	implementation "org.erpya.fiscal-printer.tools:fiscal-printer-api:${customBaseVersion}-1.3.7"
 	implementation "org.erpya.jasper.tools:amount-in-words:${customBaseVersion}-1.0.6"
+		// https://mvnrepository.com/artifact/org.glassfish.jersey.core/jersey-client
+	implementation 'org.glassfish.jersey.core:jersey-client:2.34'
+	// https://mvnrepository.com/artifact/org.glassfish.jersey.inject/jersey-hk2
+	implementation 'org.glassfish.jersey.inject:jersey-hk2:2.34'
+	// https://mvnrepository.com/artifact/javax.ws.rs/javax.ws.rs-api
+	implementation 'javax.ws.rs:javax.ws.rs-api:2.1.1'
+	// https://mvnrepository.com/artifact/org.json/json
+	implementation 'org.json:json:20211205'
 }
 
 configurations.all {
