@@ -16,11 +16,8 @@ package org.spin.grpc.service;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.adempiere.core.domains.models.I_AD_Column;
-import org.adempiere.core.domains.models.X_I_BankStatement;
 import org.adempiere.exceptions.AdempiereException;
 import org.compiere.model.MBankAccount;
 import org.compiere.model.MLookupInfo;
@@ -31,11 +28,14 @@ import org.compiere.util.Env;
 import org.compiere.util.Msg;
 import org.spin.backend.grpc.common.ListLookupItemsResponse;
 import org.spin.backend.grpc.common.LookupItem;
+import org.spin.backend.grpc.form.bank_statement_match.BankStatement;
 import org.spin.backend.grpc.form.bank_statement_match.BankStatementMatchGrpc.BankStatementMatchImplBase;
 import org.spin.backend.grpc.form.bank_statement_match.BusinessPartner;
 import org.spin.backend.grpc.form.bank_statement_match.Currency;
-import org.spin.backend.grpc.form.bank_statement_match.ImportedBankMovement;
+import org.spin.backend.grpc.form.bank_statement_match.GetBankStatementRequest;
 import org.spin.backend.grpc.form.bank_statement_match.ListBankAccountsRequest;
+import org.spin.backend.grpc.form.bank_statement_match.ListBankStatementsRequest;
+import org.spin.backend.grpc.form.bank_statement_match.ListBankStatementsResponse;
 import org.spin.backend.grpc.form.bank_statement_match.ListBusinessPartnersRequest;
 import org.spin.backend.grpc.form.bank_statement_match.ListImportedBankMovementsRequest;
 import org.spin.backend.grpc.form.bank_statement_match.ListImportedBankMovementsResponse;
@@ -70,6 +70,29 @@ public class BankStatementMatchServiceImplementation extends BankStatementMatchI
 
 	/**	Logger			*/
 	private CLogger log = CLogger.getCLogger(BankStatementMatchServiceImplementation.class);
+
+
+
+	@Override
+	public void getBankStatement(GetBankStatementRequest request, StreamObserver<BankStatement> responseObserver) {
+		try {
+			if (request == null) {
+				throw new AdempiereException("Object Request Null");
+			}
+
+			BankStatement.Builder builderList = BankStatementMatchServiceLogic.getBankStatement(request);
+			responseObserver.onNext(builderList.build());
+			responseObserver.onCompleted();
+		} catch (Exception e) {
+			log.severe(e.getLocalizedMessage());
+			e.printStackTrace();
+			responseObserver.onError(Status.INTERNAL
+				.withDescription(e.getLocalizedMessage())
+				.withCause(e)
+				.asRuntimeException()
+			);
+		}
+	}
 
 
 
@@ -224,7 +247,7 @@ public class BankStatementMatchServiceImplementation extends BankStatementMatchI
 			if (request == null) {
 				throw new AdempiereException("Object Request Null");
 			}
-			ListImportedBankMovementsResponse.Builder builder = listImportedBankMovements(request);
+			ListImportedBankMovementsResponse.Builder builder = BankStatementMatchServiceLogic.listImportedBankMovements(request);
 			responseObserver.onNext(builder.build());
 			responseObserver.onCompleted();
 		} catch (Exception e) {
@@ -235,57 +258,6 @@ public class BankStatementMatchServiceImplementation extends BankStatementMatchI
 				.asRuntimeException()
 			);
 		}
-	}
-
-	private ListImportedBankMovementsResponse.Builder listImportedBankMovements(ListImportedBankMovementsRequest request) {
-		// validate and get Bank Account
-		MBankAccount bankAccount = BankStatementMatchUtil.validateAndGetBankAccount(request.getBankAccountId());
-
-		ArrayList<Object> filterParameters = new ArrayList<Object>();
-		filterParameters.add(bankAccount.getC_BankAccount_ID());
-
-		//	For parameters
-		boolean isMatchedMode = request.getMatchMode() == MatchMode.MODE_MATCHED;
-
-		//	Date Trx
-		Timestamp dateFrom = ValueUtil.getTimestampFromLong(
-			request.getTransactionDateFrom()
-		);
-		Timestamp dateTo = ValueUtil.getTimestampFromLong(
-			request.getTransactionDateTo()
-		);
-		//	Amount
-		BigDecimal paymentAmountFrom = ValueUtil.getBigDecimalFromDecimal(
-			request.getPaymentAmountFrom()
-		);
-		BigDecimal paymentAmountTo = ValueUtil.getBigDecimalFromDecimal(
-			request.getPaymentAmountTo()
-		);
-
-		Query importMovementsQuery = BankStatementMatchUtil.buildBankMovementQuery(
-			bankAccount.getC_BankAccount_ID(),
-			isMatchedMode,
-			dateFrom,
-			dateTo,
-			paymentAmountFrom,
-			paymentAmountTo
-		);
-		List<Integer> importedBankMovementsId = importMovementsQuery
-			// .setLimit(0, 0)
-			.getIDsAsList()
-		;
-
-		ListImportedBankMovementsResponse.Builder builderList = ListImportedBankMovementsResponse.newBuilder()
-			.setRecordCount(importMovementsQuery.count())
-		;
-
-		importedBankMovementsId.forEach(bankStatementId -> {
-			X_I_BankStatement currentBankStatementImport = new X_I_BankStatement(Env.getCtx(), bankStatementId, null);
-			ImportedBankMovement.Builder importedBuilder = BankStatementMatchConvertUtil.convertImportedBankMovement(currentBankStatementImport);
-			builderList.addRecords(importedBuilder);
-		});
-
-		return builderList;
 	}
 
 	@Override
@@ -334,7 +306,8 @@ public class BankStatementMatchServiceImplementation extends BankStatementMatchI
 			dateTo,
 			paymentAmountFrom,
 			paymentAmountTo,
-			request.getBusinessPartnerId()
+			request.getBusinessPartnerId(),
+			request.getBankStatementId()
 		);
 
 		int count = query.count();
@@ -430,6 +403,28 @@ public class BankStatementMatchServiceImplementation extends BankStatementMatchI
 				throw new AdempiereException("Object Request Null");
 			}
 			ListMatchingMovementsResponse.Builder builder = BankStatementMatchServiceLogic.listMatchingMovements(request);
+			responseObserver.onNext(builder.build());
+			responseObserver.onCompleted();
+		} catch (Exception e) {
+			log.severe(e.getLocalizedMessage());
+			e.printStackTrace();
+			responseObserver.onError(Status.INTERNAL
+				.withDescription(e.getLocalizedMessage())
+				.withCause(e)
+				.asRuntimeException()
+			);
+		}
+	}
+
+
+
+	@Override
+	public void listBankStatements(ListBankStatementsRequest request, StreamObserver<ListBankStatementsResponse> responseObserver) {
+		try {
+			if (request == null) {
+				throw new AdempiereException("Object Request Null");
+			}
+			ListBankStatementsResponse.Builder builder = BankStatementMatchServiceLogic.listBankStatements(request);
 			responseObserver.onNext(builder.build());
 			responseObserver.onCompleted();
 		} catch (Exception e) {
