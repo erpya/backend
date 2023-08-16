@@ -106,7 +106,7 @@ dependencies {
 	// Stable
 	implementation "org.erpya.adempiere.tools:get-weight:${customBaseVersion}-1.2.6"
 	implementation "org.erpya.adempiere.tools:record-weight:${customBaseVersion}-1.0.8"
-	implementation "org.erpya.adempiere.tools:consigned-material:${customBaseVersion}-1.3.2"
+	implementation "org.erpya.adempiere.tools:consigned-material:${customBaseVersion}-1.3.3"
 	implementation "org.erpya.adempiere.tools:cash-management:${customBaseVersion}-1.1.7"
 	implementation "org.erpya.adempiere.tools:costing-engine-improvements:${customBaseVersion}-1.0.2"
 	implementation "org.erpya.adempiere.tools:currency-convert-documents:${customBaseVersion}-1.1.9"
