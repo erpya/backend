@@ -125,6 +125,7 @@ import org.spin.base.util.DocumentUtil;
 import org.spin.base.util.RecordUtil;
 import org.spin.base.util.SessionManager;
 import org.spin.base.util.ValueUtil;
+import org.spin.pos.service.POSServiceLogic;
 import org.spin.pos.service.cash.CashManagement;
 import org.spin.pos.service.cash.CashUtil;
 import org.spin.pos.service.order.OrderManagement;
@@ -1069,7 +1070,29 @@ public class PointOfSalesServiceImplementation extends StoreImplBase {
 					.asRuntimeException());
 		}
 	}
-	
+
+
+	@Override
+	public void listBanks(ListBanksRequest request, StreamObserver<ListBanksResponse> responseObserver) {
+		try {
+			if (request == null) {
+				throw new AdempiereException("List Banks Request Null");
+			}
+			ListBanksResponse.Builder builder = POSServiceLogic.listBanks(request);
+			responseObserver.onNext(builder.build());
+			responseObserver.onCompleted();
+		} catch (Exception e) {
+			log.severe(e.getLocalizedMessage());
+			e.printStackTrace();
+			responseObserver.onError(Status.INTERNAL
+				.withDescription(e.getLocalizedMessage())
+				.withCause(e)
+				.asRuntimeException()
+			);
+		}
+	}
+
+
 	@Override
 	public void listCustomerBankAccounts(ListCustomerBankAccountsRequest request, StreamObserver<ListCustomerBankAccountsResponse> responseObserver) {
 		try {
@@ -4652,9 +4675,9 @@ public class PointOfSalesServiceImplementation extends StoreImplBase {
 		}
 		// Campaign
 		if (pos.get_ValueAsInt("DefaultCampaign_ID") > 0) {
-			builder.setDefaultCampaignUuid(
-				ValueUtil.validateNull(
-					RecordUtil.getUuidFromId(I_C_Campaign.Table_Name, pos.get_ValueAsInt("DefaultCampaign_ID"))
+			builder.setDefaultCampaign(
+				POSConvertUtil.convertCampaign(
+					pos.get_ValueAsInt("DefaultCampaign_ID")
 				)
 			);
 		}
@@ -6014,6 +6037,28 @@ public class PointOfSalesServiceImplementation extends StoreImplBase {
 		Empty.Builder builder = Empty.newBuilder();
 
 		return builder;
+	}
+
+
+
+	@Override
+	public void listCampaigns(ListCampaignsRequest request, StreamObserver<ListCampaignsResponse> responseObserver) {
+		try {
+			if(request == null) {
+				throw new AdempiereException("Object Request Null");
+			}
+			ListCampaignsResponse.Builder cashListBuilder = POSServiceLogic.listCampaigns(request);
+			responseObserver.onNext(cashListBuilder.build());
+			responseObserver.onCompleted();
+		} catch (Exception e) {
+			log.severe(e.getLocalizedMessage());
+			e.printStackTrace();
+			responseObserver.onError(Status.INTERNAL
+				.withDescription(e.getLocalizedMessage())
+				.withCause(e)
+				.asRuntimeException()
+			);
+		}
 	}
 
 }

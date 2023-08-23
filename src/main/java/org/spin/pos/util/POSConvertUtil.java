@@ -10,23 +10,117 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,           *
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.                            *
  * For the text or an alternative of this public license, you may reach us           *
- * Copyright (C) 2012-2018 E.R.P. Consultores y Asociados, S.A. All Rights Reserved. *
+ * Copyright (C) 2018-2023 E.R.P. Consultores y Asociados, S.A. All Rights Reserved. *
  * Contributor(s): Edwin Betancourt, EdwinBetanc0urt@outlook.com                     *
  *************************************************************************************/
 
 package org.spin.pos.util;
 
 import org.adempiere.core.domains.models.I_C_POS;
+import org.compiere.model.MBank;
+import org.compiere.model.MCampaign;
 import org.compiere.model.PO;
-
+import org.compiere.util.Env;
+import org.spin.backend.grpc.pos.Bank;
+import org.spin.backend.grpc.pos.Campaign;
 import org.spin.backend.grpc.pos.CommandShortcut;
 import org.spin.base.util.ValueUtil;
 
 /**
  * This class was created for add all convert methods for POS form
- * @author Edwin Betancourt, EdwinBetanc0urt@outlook.com , https://github.com/EdwinBetanc0urt
+ * @author Edwin Betancourt, EdwinBetanc0urt@outlook.com, https://github.com/EdwinBetanc0urt
  */
 public class POSConvertUtil {
+
+	public static Bank.Builder convertBank(int bankId) {
+		if (bankId <= 0) {
+			return Bank.newBuilder();
+		}
+		MBank bank = MBank.get(Env.getCtx(), bankId);
+		return convertBank(bank);
+	}
+
+	public static Bank.Builder convertBank(MBank bank) {
+		Bank.Builder builder = Bank.newBuilder();
+		if (bank == null) {
+			return builder;
+		}
+		builder.setId(bank.getC_Bank_ID())
+			.setUuid(
+				ValueUtil.validateNull(
+					bank.getUUID()
+				)
+			)
+			.setName(
+				ValueUtil.validateNull(
+					bank.getName()
+				)
+			)
+			.setDescription(
+				ValueUtil.validateNull(
+					bank.getDescription()
+				)
+			)
+			.setRoutingNo(
+				ValueUtil.validateNull(
+					bank.getRoutingNo()
+				)
+			)
+			.setSwiftCode(
+				ValueUtil.validateNull(
+					bank.getSwiftCode()
+				)
+			)
+		;
+
+		return builder;
+	}
+
+
+	public static Campaign.Builder convertCampaign(int campaignId) {
+		Campaign.Builder builder = Campaign.newBuilder();
+		if (campaignId <= 0) {
+			return builder;
+		}
+		MCampaign campaign = MCampaign.getById(Env.getCtx(), campaignId, null);
+		return convertCampaign(campaign);
+	}
+
+	public static Campaign.Builder convertCampaign(MCampaign campaign) {
+		Campaign.Builder builder = Campaign.newBuilder();
+		if (campaign == null || campaign.getC_Campaign_ID() <= 0) {
+			return builder;
+		}
+		builder.setId(campaign.getC_Campaign_ID())
+			.setUuid(
+				ValueUtil.validateNull(
+					campaign.getUUID()
+				)
+			)
+			.setName(
+				ValueUtil.validateNull(
+					campaign.getName()
+				)
+			)
+			.setDescription(
+				ValueUtil.validateNull(
+					campaign.getDescription()
+				)
+			)
+			.setStartDate(
+				ValueUtil.getLongFromTimestamp(
+					campaign.getStartDate()
+				)
+			)
+			.setEndDate(
+				ValueUtil.getLongFromTimestamp(
+					campaign.getEndDate()
+				)
+			)
+		;
+		return builder;
+	}
+
 
 	public static CommandShortcut.Builder convertCommandShorcut(PO commandShortcut) {
 		CommandShortcut.Builder builder = CommandShortcut.newBuilder();
