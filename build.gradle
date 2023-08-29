@@ -129,7 +129,7 @@ dependencies {
 	//implementation "org.erpya.adempiere.replication:rethinkdb-replicator-client:${customBaseVersion}-1.1.5"
 	//implementation "org.erpya.adempiere.replication:kafka-replicator-client:${customBaseVersion}-1.0.9"
 	//implementation "org.erpya.adempiere.replication:json-replicator-client:${customBaseVersion}-1.0.2"
-	implementation "org.erpya.adempiere.fiscal-printer:fiscal-printer-client:${customBaseVersion}-1.5.9"
+	implementation "org.erpya.adempiere.fiscal-printer:fiscal-printer-client:${customBaseVersion}-1.6.0"
 	implementation "org.erpya.adempiere.payroll:erp-payroll-definition:${customBaseVersion}-1.0.8"
 	implementation "org.erpya.adempiere.store:internal-store:${customBaseVersion}-1.0.6"
 	//	ADempiere Verticals
