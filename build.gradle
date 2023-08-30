@@ -151,7 +151,7 @@ dependencies {
 	implementation "${baseGroupId}:adempiere-pos-improvements:1.0.1"
 	implementation "${baseGroupId}:adempiere-kafka-connector:1.0.0"
 	//	Patches
-	implementation "org.erpya.adempiere:patch:1.0.4"
+	implementation "org.erpya.adempiere:patch:1.0.5"
 	//	Migration
 	implementation "org.erpya.adempiere.migration:migration-tools:${customBaseVersion}-1.0.5"
 	//	External Tools
