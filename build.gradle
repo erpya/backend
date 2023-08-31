@@ -9,7 +9,7 @@ plugins {
 group 'com.nikhilm'
 sourceCompatibility = 1.11
 def grpcVersion = '1.53.0'
-def baseVersion = 'erpya-3.9.4-1.0.4'
+def baseVersion = 'erpya-3.9.4-1.0.5'
 def baseGroupId = 'com.erpya'
 def customBaseVersion = "adempiere-3.9.4"
 def javaMainClass = "org.spin.server.AllInOneServices"
@@ -110,7 +110,7 @@ dependencies {
 	implementation "org.erpya.adempiere.tools:cash-management:${customBaseVersion}-1.1.8"
 	implementation "org.erpya.adempiere.tools:costing-engine-improvements:${customBaseVersion}-1.0.2"
 	implementation "org.erpya.adempiere.tools:currency-convert-documents:${customBaseVersion}-1.2.0"
-	implementation "org.erpya.adempiere.tools:performance-analysis:${customBaseVersion}-1.1.6"
+	implementation "org.erpya.adempiere.tools:performance-analysis:${customBaseVersion}-1.1.8"
 	implementation "org.erpya.adempiere.tools:queue-manager:${customBaseVersion}-1.0.8"
 	//	Deprecated, already exist for trunk
 	//implementation "org.erpya.adempiere.tools:notification-queue:${customBaseVersion}-1.1.8"
