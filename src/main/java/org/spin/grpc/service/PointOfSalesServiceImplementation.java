@@ -3804,6 +3804,11 @@ public class PointOfSalesServiceImplementation extends StoreImplBase {
 				int campaignId = RecordUtil.getIdFromUuid(I_C_Campaign.Table_Name, request.getCampaignUuid(), transactionName);
 				if(campaignId > 0 && campaignId != salesOrder.getC_Campaign_ID()) {
 					salesOrder.setC_Campaign_ID(campaignId);
+					// update campaign on lines
+					for (MOrderLine orderLine: salesOrder.getLines()) {
+						orderLine.setC_Campaign_ID(campaignId);
+						orderLine.saveEx(transactionName);
+					}
 				}
 				if(!Util.isEmpty(request.getWarehouseUuid())) {
 					warehouseId = RecordUtil.getIdFromUuid(I_M_Warehouse.Table_Name, request.getWarehouseUuid(), transactionName);
@@ -4142,12 +4147,13 @@ public class PointOfSalesServiceImplementation extends StoreImplBase {
 	 * @param userPin
      */
 	private Empty.Builder validatePIN(ValidatePINRequest request) {
-		MPOS pos = getPOSFromUuid(request.getPosUuid(), false);
+		MPOS pos = POS.validateAndGetPOS(request.getPosId(), request.getPosUuid(), false);
+
 		if(Util.isEmpty(request.getPin())) {
 			throw new AdempiereException("@UserPIN@ @IsMandatory@");
 		}
 
-		if (validatePINSupervisor(pos.getC_POS_ID(), Env.getAD_User_ID(Env.getCtx()), request.getPin(), request.getRequestedAccess(), ValueUtil.getBigDecimalFromDecimal(request.getRequestedAmount()))) {
+		if (validatePINSupervisor(pos.getC_POS_ID(), Env.getAD_User_ID(Env.getCtx()), request.getPin(), request.getRequestedAccess(), ValueUtil.getBigDecimalFromDecimal(request.getRequestedAmount()), request.getOrderId())) {
 			return Empty.newBuilder();
 		}
 
@@ -4238,14 +4244,15 @@ public class PointOfSalesServiceImplementation extends StoreImplBase {
 		return null;
 	}
 	
-	private boolean validatePINSupervisor(int posId, int userId, String pin, String requestedAccess, BigDecimal requestedAmount) {
+	private boolean validatePINSupervisor(int posId, int userId, String pin, String requestedAccess, BigDecimal requestedAmount, int oderId) {
 		if (Util.isEmpty(requestedAccess)) {
 			return false;
 		}
+		MPOS pos = POS.validateAndGetPOS(posId, false);
 
 		StringBuffer whereClause = new StringBuffer();
 		List<Object> parameters = new ArrayList<>();
-		parameters.add(posId);
+		parameters.add(pos.getC_POS_ID());
 		MTable table = MTable.get(Env.getCtx(), "C_POSSellerAllocation");
 		if (table != null && table.getColumn(requestedAccess) != null) {
 			whereClause.append(" AND seller.").append(requestedAccess).append("= 'Y'");
