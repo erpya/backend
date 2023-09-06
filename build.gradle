@@ -139,7 +139,7 @@ dependencies {
 	implementation "org.erpya.adempiere.verticals:delivery-management-service:${customBaseVersion}-1.2.1"
 	implementation "org.erpya.adempiere.verticals:sales-force-management:${customBaseVersion}-1.3.1"
 	implementation "org.erpya.adempiere.verticals:import-export-management:${customBaseVersion}-1.0.9"
-	implementation "org.erpya.adempiere.locations:fap-venezuela-location:${customBaseVersion}-1.1.8"
+	implementation "org.erpya.adempiere.locations:fap-venezuela-location:${customBaseVersion}-1.1.9"
 	implementation "org.erpya.adempiere.cloud:cloud-service-management:${customBaseVersion}-1.3.0"
 	implementation "org.erpya.adempiere.locations:additional-withholding-tax:${customBaseVersion}-1.2.7"
 	//	Public Libraries
