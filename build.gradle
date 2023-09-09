@@ -149,7 +149,7 @@ dependencies {
 	implementation "${baseGroupId}:adempiere-jwt-token:1.0.2"
 	implementation "${baseGroupId}:adempiere-dashboard-improvements:1.0.1"
 	implementation "${baseGroupId}:adempiere-pos-improvements:1.0.1"
-	implementation "${baseGroupId}:adempiere-kafka-connector:1.0.0"
+	implementation "${baseGroupId}:adempiere-kafka-connector:1.0.2"
 	//	Patches
 	implementation "org.erpya.adempiere:patch:1.0.5"
 	//	Migration
