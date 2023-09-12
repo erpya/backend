@@ -122,7 +122,7 @@ dependencies {
 	implementation "org.erpya.adempiere.integrations:mp-integration:${customBaseVersion}-1.1.2"
 	implementation "org.erpya.adempiere.tools:payment-processor:${customBaseVersion}-1.0.6"
 	//	System Administrator Libraries
-	implementation "org.erpya.adempiere.admin:core-tools:${customBaseVersion}-1.5.2"
+	implementation "org.erpya.adempiere.admin:core-tools:${customBaseVersion}-1.5.4"
 	//	Changes to be add to ADempiere core
 	implementation "org.erpya.adempiere.core:additional-reports:${customBaseVersion}-1.2.9"
 	//	ADempiere specific features
