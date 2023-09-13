@@ -735,9 +735,8 @@ public class CoreFunctionalityImplementation extends CoreFunctionalityImplBase {
 	 */
 	private ListOrganizationsResponse.Builder listOrganizations(ListOrganizationsRequest request) {
 		MRole role = null;
-		if(request.getRoleId() != 0) {
-			role = MRole.get(Env.getCtx(), request.getRoleId());
-		} else if(!Util.isEmpty(request.getRoleUuid())) {
+		int roleId = request.getRoleId();
+		if(roleId <= 0 && !Util.isEmpty(request.getRoleUuid(), true)) {
 			role = new Query(
 				Env.getCtx(),
 				I_AD_Role.Table_Name,
@@ -748,6 +747,8 @@ public class CoreFunctionalityImplementation extends CoreFunctionalityImplBase {
 				.setOnlyActiveRecords(true)
 				.first()
 			;
+		} else {
+			role = MRole.get(Env.getCtx(), roleId);
 		}
 		//	get from role access
 		if (role == null || !role.isActive()) {
@@ -852,10 +853,10 @@ public class CoreFunctionalityImplementation extends CoreFunctionalityImplBase {
 		String nexPageToken = null;
 		int pageNumber = LimitUtil.getPageNumber(SessionManager.getSessionUuid(), request.getPageToken());
 		int limit = LimitUtil.getPageSize(request.getPageSize());
-		int offset = (pageNumber - 1) * limit;
+		// int offset = (pageNumber - 1) * limit;
 
 		int organizationId = request.getOrganizationId();
-		if (organizationId <= 0) {
+		if (organizationId <= 0 && !Util.isEmpty(request.getOrganizationUuid(), true)) {
 			organizationId = RecordUtil.getIdFromUuid(I_AD_Org.Table_Name, request.getOrganizationUuid(), null);
 		}
 
