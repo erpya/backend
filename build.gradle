@@ -89,6 +89,7 @@ dependencies {
 	implementation "com.github.instagram4j:instagram4j:2.0.6"
 	implementation "com.itextpdf:itext-pdfa:5.5.2"
 	implementation "com.lowagie:itext:2.1.7"
+	implementation "org.codehaus.groovy:groovy-all:2.4.15"
 	//	Elastic Search
 	implementation "org.elasticsearch.client:elasticsearch-rest-high-level-client:7.9.1"
 	implementation "org.erpya.adempiere.tools:exchange-operation-system:${customBaseVersion}-1.2.9"
