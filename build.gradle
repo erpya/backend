@@ -32,7 +32,7 @@ dependencies {
             '*.jar'
         ]
     )
-    implementation 'com.erpya:adempiere_patch.erpya_libs:3.9.4-1.0.6'
+    implementation 'com.erpya:adempiere_patch.erpya_libs:v3.9.4.001-1.0.0'
 	implementation "io.netty:netty-handler:4.1.99.Final"
     implementation "io.grpc:grpc-alts:${grpcVersion}"
 	runtimeOnly "io.grpc:grpc-netty-shaded:${grpcVersion}"
