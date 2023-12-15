@@ -6,7 +6,6 @@ plugins {
     id 'visual-studio'
     id 'maven-publish'
 }
-
 group 'com.nikhilm'
 sourceCompatibility = 1.11
 def grpcVersion = '1.58.0'
@@ -18,8 +17,8 @@ def javaMainClass = "org.spin.server.AllInOneServices"
 repositories {
     mavenCentral()
     mavenLocal()
-    maven {
-    	url = System.getenv("GITHUB_DEPLOY_REPOSITORY") ?: System.properties['deploy.repository'] ?: 'https://maven.pkg.github.com'
+     maven {
+    	url = "https://maven.pkg.github.com/erpya/adempiere_patch"
         credentials {
         	username = System.getenv("GITHUB_DEPLOY_USER") ?: System.properties['deploy.user']
             password = System.getenv("GITHUB_DEPLOY_TOKEN") ?: System.properties['deploy.token'] 
@@ -33,6 +32,7 @@ dependencies {
             '*.jar'
         ]
     )
+    implementation 'com.erpya:adempiere_patch.erpya_libs:3.9.4.001-1.0.5'
 	implementation "io.netty:netty-handler:4.1.99.Final"
     implementation "io.grpc:grpc-alts:${grpcVersion}"
 	runtimeOnly "io.grpc:grpc-netty-shaded:${grpcVersion}"
@@ -51,34 +51,6 @@ dependencies {
 	implementation 'javax.activation:activation:1.1.1'
 
 	implementation "${baseGroupId}:adempiere-grpc-utils:1.2.6"
-
-	//	ADempiere Core
-	implementation "${baseGroupId}:base:${baseVersion}"
-	implementation "${baseGroupId}:point-of-sales:${baseVersion}"
-	implementation "${baseGroupId}:store:${baseVersion}"
-	implementation "${baseGroupId}:distribution:${baseVersion}"
-	implementation "${baseGroupId}:freight:${baseVersion}"
-	implementation "${baseGroupId}:store:${baseVersion}"
-	implementation "${baseGroupId}:human-resource-and-payroll:${baseVersion}"
-	implementation "${baseGroupId}:extend:${baseVersion}"
-	implementation "${baseGroupId}:migration:${baseVersion}"
-	implementation "${baseGroupId}:asset:${baseVersion}"
-	implementation "${baseGroupId}:crm:${baseVersion}"
-	implementation "${baseGroupId}:production:${baseVersion}"
-	implementation "${baseGroupId}:project:${baseVersion}"
-	implementation "${baseGroupId}:request:${baseVersion}"
-	implementation "${baseGroupId}:adempiere.test:${baseVersion}"
-	implementation "${baseGroupId}:cashflow:${baseVersion}"
-	implementation "${baseGroupId}:manufacturing:${baseVersion}"
-	implementation "${baseGroupId}:wms:${baseVersion}"
-	implementation "${baseGroupId}:openid-authentication:${baseVersion}"
-	implementation "${baseGroupId}:investment-and-loan:${baseVersion}"
-	implementation "${baseGroupId}:time-and-attendance:${baseVersion}"
-	implementation "${baseGroupId}:loan:${baseVersion}"
-	implementation "${baseGroupId}:discord-notifier:${baseVersion}"
-	implementation "${baseGroupId}:telegram-notifier:${baseVersion}"
-	implementation "${baseGroupId}:tools:${baseVersion}"
-	implementation "${baseGroupId}:jasperreports:${baseVersion}"
 	//	Others
     compileOnly 'org.apache.tomcat:annotations-api:6.0.53'
 	// ADempiere External Libraries
