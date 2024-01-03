@@ -42,9 +42,6 @@ dependencies {
     // https://mvnrepository.com/artifact/com.google.protobuf/protobuf-java
 	implementation 'com.google.protobuf:protobuf-java:3.24.3'
 	implementation 'com.google.protobuf:protobuf-java-util:3.24.3'
-	implementation 'io.jsonwebtoken:jjwt-api:0.11.2'
-	implementation 'io.jsonwebtoken:jjwt-impl:0.11.2'
-	implementation 'io.jsonwebtoken:jjwt-jackson:0.11.2'
     implementation 'javax.xml.bind:jaxb-api:2.4.0-b180830.0359'
 	implementation 'com.sun.xml.bind:jaxb-impl:3.0.0-M4'
 	implementation 'com.sun.xml.bind:jaxb-core:3.0.0-M4'
@@ -53,6 +50,8 @@ dependencies {
 	implementation "${baseGroupId}:adempiere-grpc-utils:1.2.6"
 	//	Others
     compileOnly 'org.apache.tomcat:annotations-api:6.0.53'
+	implementation 'net.sf.jasperreports:jasperreports-fonts:6.21.0'
+
 	// ADempiere External Libraries
 	implementation 'com.github.jjYBdx4IL:ecs:1.4.2.1'
 	implementation 'com.itextpdf:itextpdf:5.5.13.3' // used by org.adempiere.pdf.iText7Document

@@ -14,12 +14,9 @@
  ************************************************************************************/
 package org.spin.grpc.service;
 
-import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,7 +43,9 @@ import org.adempiere.core.domains.models.I_AD_Browse_Field;
 import org.adempiere.core.domains.models.I_AD_ChangeLog;
 import org.adempiere.core.domains.models.I_AD_Client;
 import org.adempiere.core.domains.models.I_AD_Element;
+import org.adempiere.core.domains.models.I_AD_EntityType;
 import org.adempiere.core.domains.models.I_AD_Field;
+import org.adempiere.core.domains.models.I_AD_Language;
 import org.adempiere.core.domains.models.I_AD_Preference;
 import org.adempiere.core.domains.models.I_AD_Private_Access;
 import org.adempiere.core.domains.models.I_AD_Process_Para;
@@ -117,7 +116,7 @@ import org.spin.backend.grpc.user_interface.GetRecordAccessRequest;
 import org.spin.backend.grpc.user_interface.GetTabEntityRequest;
 import org.spin.backend.grpc.user_interface.ListBrowserItemsRequest;
 import org.spin.backend.grpc.user_interface.ListBrowserItemsResponse;
-import org.spin.backend.grpc.user_interface.ListGeneralInfoRequest;
+import org.spin.backend.grpc.user_interface.ListGeneralSearchRecordsRequest;
 import org.spin.backend.grpc.user_interface.ListMailTemplatesRequest;
 import org.spin.backend.grpc.user_interface.ListMailTemplatesResponse;
 import org.spin.backend.grpc.user_interface.ListTabEntitiesRequest;
@@ -153,16 +152,19 @@ import org.spin.base.db.QueryUtil;
 import org.spin.base.db.WhereClauseUtil;
 import org.spin.base.query.FilterManager;
 import org.spin.base.query.SortingManager;
-import org.spin.base.ui.UserInterfaceConvertUtil;
 import org.spin.base.util.ContextManager;
 import org.spin.base.util.ConvertUtil;
 import org.spin.base.util.LookupUtil;
 import org.spin.base.util.RecordUtil;
 import org.spin.base.util.ReferenceInfo;
 import org.spin.base.util.ReferenceUtil;
+import org.spin.grpc.service.ui.UserInterfaceConvertUtil;
+import org.spin.grpc.service.ui.UserInterfaceLogic;
 import org.spin.model.MADContextInfo;
 import org.spin.service.grpc.authentication.SessionManager;
+import org.spin.service.grpc.util.value.BooleanManager;
 import org.spin.service.grpc.util.value.NumberManager;
+import org.spin.service.grpc.util.value.TimeManager;
 import org.spin.service.grpc.util.value.ValueManager;
 import org.spin.util.ASPUtil;
 
@@ -1001,119 +1003,32 @@ public class UserInterface extends UserInterfaceImplBase {
 	}
 
 
+
 	@Override
-	public void listGeneralInfo(ListGeneralInfoRequest request, StreamObserver<ListEntitiesResponse> responseObserver) {
+	public void listGeneralSearchRecords(ListGeneralSearchRecordsRequest request, StreamObserver<ListEntitiesResponse> responseObserver) {
 		try {
 			if(request == null) {
-				throw new AdempiereException("Object Request Null");
+				throw new AdempiereException("List General Search Records Request Null");
 			}
-			ListEntitiesResponse.Builder entityValueList = listGeneralInfo(request);
+			ListEntitiesResponse.Builder entityValueList = UserInterfaceLogic.listGeneralSearchRecords(
+				request
+			);
 			responseObserver.onNext(entityValueList.build());
 			responseObserver.onCompleted();
 		} catch (Exception e) {
 			log.severe(e.getLocalizedMessage());
-			responseObserver.onError(Status.INTERNAL
-				.withDescription(e.getLocalizedMessage())
-				.withCause(e)
-				.asRuntimeException());
-		}
-	}
-	
-	/**
-	 * Get default value base on field, process parameter, browse field or column
-	 * @param request
-	 * @return
-	 */
-	private ListEntitiesResponse.Builder listGeneralInfo(ListGeneralInfoRequest request) {
-		String tableName = request.getTableName();
-		if (Util.isEmpty(tableName, true)) {
-			throw new AdempiereException("@AD_Table_ID@ @NotFound@");
-		}
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID() <= 0) {
-			throw new AdempiereException("@AD_Table_ID@ @NotFound@");
-		}
-
-		MLookupInfo reference = ReferenceInfo.getInfoFromRequest(
-			request.getReferenceId(),
-			request.getFieldId(),
-			request.getProcessParameterId(),
-			request.getBrowseFieldId(),
-			request.getColumnId(),
-			request.getColumnName(),
-			tableName
-		);
-
-		int windowNo = ThreadLocalRandom.current().nextInt(1, 8996 + 1);
-		ContextManager.setContextWithAttributesFromString(
-			windowNo, Env.getCtx(), request.getContextAttributes()
-		);
-
-		//
-		StringBuilder sql = new StringBuilder(QueryUtil.getTableQueryWithReferences(table));
-
-		// add where with access restriction
-		String sqlWithRoleAccess = MRole.getDefault(Env.getCtx(), false)
-			.addAccessSQL(
-				sql.toString(),
-				null,
-				MRole.SQL_FULLYQUALIFIED,
-				MRole.SQL_RO
+			e.printStackTrace();
+			responseObserver.onError(
+				Status.INTERNAL
+					.withDescription(e.getLocalizedMessage())
+					.withCause(e)
+					.asRuntimeException()
 			);
-
-		StringBuffer whereClause = new StringBuffer();
-
-		// validation code of field
-		String validationCode = WhereClauseUtil.getWhereRestrictionsWithAlias(tableName, reference.ValidationCode);
-		String parsedValidationCode = Env.parseContext(Env.getCtx(), windowNo, validationCode, false);
-		if (!Util.isEmpty(reference.ValidationCode, true)) {
-			if (Util.isEmpty(parsedValidationCode, true)) {
-				throw new AdempiereException("@WhereClause@ @Unparseable@");
-			}
-			whereClause.append(" AND ").append(parsedValidationCode);
 		}
-
-		//	For dynamic condition
-		List<Object> params = new ArrayList<>(); // includes on filters criteria
-		String dynamicWhere = WhereClauseUtil.getWhereClauseFromCriteria(request.getFilters(), tableName, params);
-		if (!Util.isEmpty(dynamicWhere, true)) {
-			//	Add includes first AND
-			whereClause.append(" AND ")
-				.append("(")
-				.append(dynamicWhere)
-				.append(")");
-		}
-
-		sqlWithRoleAccess += whereClause;
-		String parsedSQL = RecordUtil.addSearchValueAndGet(sqlWithRoleAccess, tableName, request.getSearchValue(), false, params);
-
-		//	Get page and count
-		int pageNumber = LimitUtil.getPageNumber(SessionManager.getSessionUuid(), request.getPageToken());
-		int limit = LimitUtil.getPageSize(request.getPageSize());
-		int offset = (pageNumber - 1) * limit;
-		int count = 0;
-
-		ListEntitiesResponse.Builder builder = ListEntitiesResponse.newBuilder();
-		
-		//	Count records
-		count = CountUtil.countRecords(parsedSQL, tableName, params);
-		//	Add Row Number
-		parsedSQL = LimitUtil.getQueryWithLimit(parsedSQL, limit, offset);
-		builder = RecordUtil.convertListEntitiesResult(MTable.get(Env.getCtx(), tableName), parsedSQL, params);
-		//	
-		builder.setRecordCount(count);
-		//	Set page token
-		String nexPageToken = null;
-		if(LimitUtil.isValidNextPageToken(count, offset, limit)) {
-			nexPageToken = LimitUtil.getPagePrefix(SessionManager.getSessionUuid()) + (pageNumber + 1);
-		}
-		builder.setNextPageToken(
-			ValueManager.validateNull(nexPageToken)
-		);
-		
-		return builder;
 	}
-	
+
+
+
 	/**
 	 * Convert Record Access
 	 * @param request
@@ -1555,7 +1470,8 @@ public class UserInterface extends UserInterfaceImplBase {
 		//	Set value
 		entity.set_ValueOfColumn(changeLog.getAD_Column_ID(), value);
 	}
-	
+
+
 	/**
 	 * Convert string representation to appropriate object type
 	 * for column
@@ -1564,38 +1480,48 @@ public class UserInterface extends UserInterfaceImplBase {
 	 * @return
 	 */
 	private Object stringToObject(MColumn column, String value) {
-		if ( value == null )
+		if (value == null) {
 			return null;
-		
-		if ( DisplayType.isText(column.getAD_Reference_ID()) 
-				|| column.getAD_Reference_ID() == DisplayType.List  
-				|| column.getColumnName().equals("EntityType") 
-				|| column.getColumnName().equals("AD_Language")) {
+		}
+
+		int displayTypeId = column.getAD_Reference_ID();
+		if (DisplayType.isText(column.getAD_Reference_ID()) || displayTypeId == DisplayType.List
+				|| column.getColumnName().equals(I_AD_EntityType.COLUMNNAME_EntityType)
+				|| column.getColumnName().equals(I_AD_Language.COLUMNNAME_AD_Language)) {
 			return value;
 		}
-		else if ( DisplayType.isNumeric(column.getAD_Reference_ID()) ){
-			return new BigDecimal(value);
+		else if (DisplayType.isID(column.getAD_Reference_ID()) || DisplayType.Integer == displayTypeId) {
+			Object valueObject = NumberManager.getIntegerFromString(value);
+			if (valueObject == null && value != null
+				&& (DisplayType.Search == displayTypeId || DisplayType.Table == displayTypeId)) {
+				// EntityType, AD_Language
+				return value;
+			}
+			return valueObject;
 		}
-		else if (DisplayType.isID(column.getAD_Reference_ID()) ) {
-			return Integer.valueOf(value);
-		}	
-		else if (DisplayType.YesNo == column.getAD_Reference_ID() ) {
-			return "true".equalsIgnoreCase(value);
+		else if (DisplayType.isNumeric(displayTypeId)) {
+			return NumberManager.getBigDecimalFromString(value);
 		}
-		else if (DisplayType.Button == column.getAD_Reference_ID() && column.getAD_Reference_Value_ID() == 0) {
+		else if (DisplayType.YesNo == displayTypeId) {
+			return BooleanManager.getBooleanFromString(value);
+		}
+		else if (DisplayType.Button == displayTypeId && column.getAD_Reference_Value_ID() == 0) {
 			return "true".equalsIgnoreCase(value) ? "Y" : "N";
 		}
-		else if (DisplayType.Button == column.getAD_Reference_ID() && column.getAD_Reference_Value_ID() != 0) {
+		else if (DisplayType.Button == displayTypeId && column.getAD_Reference_Value_ID() != 0) {
 			return value;
 		}
-		else if (DisplayType.isDate(column.getAD_Reference_ID())) {
-			return Timestamp.valueOf(value);
+		else if (DisplayType.isDate(displayTypeId)) {
+			return TimeManager.getTimestampFromString(value);
 		}
-	//Binary,  Radio, RowID, Image not supported
-		else 
+		// Binary, RowID, Image not supported
+		else {
 			return null;
+		}
 	}
-	
+
+
+
 	/**
 	 * Create Chat Entry
 	 * @param Env.getCtx()
@@ -1994,7 +1920,10 @@ public class UserInterface extends UserInterfaceImplBase {
 						}
 						String uuid = null;
 						//	Validate if exist UUID
-						int uuidIndex = getColumnIndex(metaData, I_AD_Element.COLUMNNAME_UUID);
+						int uuidIndex = RecordUtil.getColumnIndex(
+							metaData,
+							I_AD_Element.COLUMNNAME_UUID
+						);
 						if(uuidIndex != -1) {
 							uuid = rs.getString(uuidIndex);
 						}
@@ -2284,7 +2213,10 @@ public class UserInterface extends UserInterfaceImplBase {
 				}
 				String uuid = null;
 				//	Validate if exist UUID
-				int uuidIndex = getColumnIndex(metaData, I_AD_Element.COLUMNNAME_UUID);
+				int uuidIndex = RecordUtil.getColumnIndex(
+					metaData,
+					I_AD_Element.COLUMNNAME_UUID
+				);
 				if(uuidIndex != -1) {
 					uuid = rs.getString(uuidIndex);
 				}
@@ -2311,24 +2243,8 @@ public class UserInterface extends UserInterfaceImplBase {
 		return builder;
 	}
 
-	/**
-	 * Verify if exist a column
-	 * @param metaData
-	 * @param columnName
-	 * @return
-	 * @throws SQLException 
-	 */
-	public static int getColumnIndex(ResultSetMetaData metaData, String columnName) throws SQLException {
-		for(int columnIndex = 1; columnIndex <= metaData.getColumnCount(); columnIndex++) {
-			if(metaData.getColumnName(columnIndex).toLowerCase().equals(columnName.toLowerCase())) {
-				return columnIndex;
-			}
-		}
-		return -1;
-	}
 
 
-	
 	@Override
 	public void listBrowserItems(ListBrowserItemsRequest request, StreamObserver<ListBrowserItemsResponse> responseObserver) {
 		try {
