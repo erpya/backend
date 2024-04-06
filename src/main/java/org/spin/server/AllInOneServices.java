@@ -18,6 +18,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.logging.Logger;
 
+import org.compiere.jr.report.ReportStarter;
 import org.compiere.util.Env;
 import org.spin.authentication.AuthorizationServerInterceptor;
 import org.spin.base.setup.SetupLoader;
@@ -91,6 +92,9 @@ public class AllInOneServices {
 	private void start() throws IOException {
 		//	Start based on provider
         Env.setContextProvider(contextProvider);
+		ReportStarter.setReportViewerProvider(
+				new ServerReportProvider()
+		);
 		ServerBuilder<?> serverBuilder;
 		if(SetupLoader.getInstance().getServer().isTlsEnabled()) {
 			serverBuilder = NettyServerBuilder.forPort(SetupLoader.getInstance().getServer().getPort())
