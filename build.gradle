@@ -145,7 +145,7 @@ dependencies {
 	implementation "org.erpya.adempiere.locations:additional-withholding-tax:${customBaseVersion}-1.2.7"
 	//	Public Libraries
 	implementation "${baseGroupId}:withholding-engine:erpya-3.9.4-1.0.2"
-	implementation "${baseGroupId}:location-venezuela:2.2.7"
+	implementation "${baseGroupId}:location-venezuela:erpya-3.9.4-1.0.4"
 	implementation "${baseGroupId}:adempiere-business-processors:1.0.5"
 	implementation "${baseGroupId}:adempiere-jwt-token:1.0.2"
 	implementation "${baseGroupId}:adempiere-dashboard-improvements:1.0.1"
