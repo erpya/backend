@@ -14,10 +14,10 @@ def baseGroupId = 'com.erpya'
 def customBaseVersion = "adempiere-3.9.4"
 def javaMainClass = "org.spin.server.AllInOneServices"
 repositories {
-    mavenCentral()
     mavenLocal()
+    mavenCentral()
     maven {
-    	url = System.getenv("GITHUB_DEPLOY_REPOSITORY") ?: System.properties['deploy.repository'] ?: 'https://maven.pkg.github.com'
+    	url = System.getenv("GITHUB_DEPLOY_REPOSITORY") ?: System.properties['deploy.repository'] ?: 'https://maven.pkg.github.com/erpya/repository'
         credentials {
         	username = System.getenv("GITHUB_DEPLOY_USER") ?: System.properties['deploy.user']
             password = System.getenv("GITHUB_DEPLOY_TOKEN") ?: System.properties['deploy.token'] 
@@ -145,7 +145,7 @@ dependencies {
 	implementation "org.erpya.adempiere.locations:additional-withholding-tax:${customBaseVersion}-1.2.7"
 	//	Public Libraries
 	implementation "${baseGroupId}:withholding-engine:erpya-3.9.4-1.0.2"
-	implementation "${baseGroupId}:location-venezuela:erpya-3.9.4-1.0.4"
+	implementation "${baseGroupId}:location-venezuela:2.2.7"
 	implementation "${baseGroupId}:adempiere-business-processors:1.0.5"
 	implementation "${baseGroupId}:adempiere-jwt-token:1.0.2"
 	implementation "${baseGroupId}:adempiere-dashboard-improvements:1.0.1"
