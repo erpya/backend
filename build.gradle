@@ -17,6 +17,13 @@ repositories {
     mavenLocal()
     mavenCentral()
     maven {
+    	url = "https://maven.pkg.github.com/erpya/adempiere_patch"
+        credentials {
+        	username = System.getenv("GITHUB_DEPLOY_USER") ?: System.properties['deploy.user']
+            password = System.getenv("GITHUB_DEPLOY_TOKEN") ?: System.properties['deploy.token'] 
+		}
+	}
+    maven {
     	url = System.getenv("GITHUB_DEPLOY_REPOSITORY") ?: System.properties['deploy.repository'] ?: 'https://maven.pkg.github.com/erpya/repository'
         credentials {
         	username = System.getenv("GITHUB_DEPLOY_USER") ?: System.properties['deploy.user']
@@ -45,7 +52,8 @@ dependencies {
 	implementation 'com.sun.xml.bind:jaxb-core:3.0.0-M4'
 	implementation 'javax.activation:activation:1.1.1'
 	//	ADempiere Core
-	implementation "${baseGroupId}:base:${baseVersion}"
+	//implementation "${baseGroupId}:base:${baseVersion}"
+	implementation 'com.erpya:adempiere_patch.base:3.9.4.001-2.6.7'
 	implementation "${baseGroupId}:point-of-sales:${baseVersion}"
 	implementation "${baseGroupId}:store:${baseVersion}"
 	implementation "${baseGroupId}:distribution:${baseVersion}"
